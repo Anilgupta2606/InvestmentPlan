@@ -1098,6 +1098,7 @@ function wireDataPortability(){
         </div>`;
       document.getElementById('restore-go').addEventListener('click', ()=>{
         pushUndo('restoring a file');
+        if(!s.plan && STATE.plan && !STATE.plan.starter) s.plan = STATE.plan;   // an older export: keep your plan's starting point
         STATE = s;
         usePlan(STATE.plan);
         migrateState();
