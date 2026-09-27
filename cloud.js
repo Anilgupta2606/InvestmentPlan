@@ -46,7 +46,7 @@ const Cloud = (function(){
           if(!s) return null;
           const st = s.settings || {};
           const txns = (s.txns || []).map(t=>({date:String(t.date || ''), amount:Number(t.amount) || 0, direction:t.direction, kind:t.kind,
-                                              category:t.category || '', excluded:!!t.excluded}));
+                                              category:t.category || '', excluded:!!t.excluded, paired:!!t.pairId}));
           return {auth: s.auth || null, txns, invest: investMonths(txns),
                   ai: {keys: Object.assign({}, st.aiKeys || {}, st.geminiKey ? {gemini: st.geminiKey} : {}),
                        order: st.aiOrder || [], off: st.aiOff || [], model: st.aiModel || {}}};
