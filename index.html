@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>The 16-Year Ledger</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a78d6'/%3E%3Cpath d='M16 44 L28 30 L36 38 L48 20' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-eyebrow" id="brand-eyebrow">Investment plan</span>
+        <h1>The 16-Year <em>Ledger</em></h1>
+      </div>
+      <div class="search-wrap">
+        <input type="search" id="page-search" autocomplete="off" spellcheck="false"
+               placeholder="Filter this tab — fund, holding, action…" aria-label="Filter the current tab">
+        <span class="search-count" id="search-count"></span>
+        <button class="search-clear" id="search-clear" hidden>Clear</button>
+      </div>
+      <div class="topstat-row">
+        <div class="topstat"><div class="v num" id="top-sip">—</div><div class="l">Monthly SIP</div></div>
+        <div class="topstat"><div class="v num" id="top-target">—</div><div class="l">Target corpus</div></div>
+        <button class="ask-btn" id="ask-open" hidden>✦ Ask AI</button>
+        <button class="profile-btn" id="profile-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Profile: password, theme, expense tracker, sign out">AD</button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections" id="tabs"></nav>
+  </header>
+  <main id="main"></main>
+  <footer>
+    <span id="plan-source">figures are planning estimates, not financial advice.</span>
+    <span id="footer-updated"></span>
+  </footer>
+</div>
+<div id="tooltip" role="tooltip" hidden></div>
+<div class="save-bar" id="save-bar">
+  <span id="save-bar-msg">You have unsaved changes</span>
+  <button class="search-clear" id="undo-btn" hidden>Undo</button>
+  <button class="save-btn" id="save-btn">Save</button>
+  <button class="discard-btn" id="discard-btn">Discard</button>
+</div>
+<div class="save-status" id="save-status"></div>
+<script src="cloud.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
