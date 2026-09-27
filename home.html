@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Money Home</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f5c4d'/%3E%3Cpath d='M14 34 L32 18 L50 34 M20 30 V48 H44 V30' stroke='white' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f2f4f1; --card:#fff; --ink:#15201c; --ink2:#3d4a45; --mut:#67736e; --line:#dde3de;
+  --accent:#0f5c4d; --up:#127a45; --dn:#c0392b;
+  --ats:#3847a8; --exp:#a35f00; --led:#2a78d6;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace; --sans:'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ color-scheme:dark; --bg:#0f1412; --card:#171e1b; --ink:#e6ece9; --ink2:#c3ccc8; --mut:#8e9a95; --line:#29332f;
+    --accent:#4fc3a8; --up:#4cc38a; --dn:#ef6b6a; --ats:#9aa6f2; --exp:#f0b35c; --led:#7fb2f0; }
+}
+:root[data-theme="dark"]{ color-scheme:dark; --bg:#0f1412; --card:#171e1b; --ink:#e6ece9; --ink2:#c3ccc8; --mut:#8e9a95; --line:#29332f;
+  --accent:#4fc3a8; --up:#4cc38a; --dn:#ef6b6a; --ats:#9aa6f2; --exp:#f0b35c; --led:#7fb2f0; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:18px;padding-block:28px 60px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:22px}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+h1{font-size:clamp(26px,4vw,34px);margin:6px 0 0;letter-spacing:-.02em;text-wrap:balance}
+.nw{text-align:right}
+.nw .v{font:600 26px/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.nw .l{font-size:12px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--c)}
+.card h2{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+.card .sub{font-size:12.5px;color:var(--mut);margin-top:-8px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.k .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:600}
+.k .v{font:600 19px/1.25 var(--mono);font-variant-numeric:tabular-nums}
+.k .s{font-size:12px;color:var(--ink2)}
+.up{color:var(--up)} .dn{color:var(--dn)}
+.note{font-size:12.5px;color:var(--ink2);background:color-mix(in srgb,var(--c) 8%,var(--card));border-radius:8px;padding:8px 10px}
+.bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c)}
+.go{margin-top:auto;align-self:flex-start;display:inline-flex;gap:6px;align-items:center;padding:8px 14px;border-radius:9px;background:var(--c);color:#fff;text-decoration:none;font-weight:600;font-size:13.5px}
+.go:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.foot{margin-top:22px;font-size:12px;color:var(--mut)}
+.login{min-height:80vh;display:grid;place-items:center}
+.login form{width:min(360px,100%);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:8px}
+.login input{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font:15px var(--sans)}
+.login button{margin-top:8px;padding:10px;border:0;border-radius:9px;background:var(--accent);color:#fff;font:600 14px var(--sans);cursor:pointer}
+.err{color:var(--dn);font-size:13px}
+.out{font-size:12px;color:var(--mut);background:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="cloud.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inr = n => (n < 0 ? '−' : '') + '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
+const lakh = n => { const a = Math.abs(n), s = n < 0 ? '−' : ''; return a >= 1e7 ? s + '₹' + (a / 1e7).toFixed(2) + ' Cr' : a >= 1e5 ? s + '₹' + (a / 1e5).toFixed(2) + ' L' : inr(n); };
+const pct = n => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(2) + '%';
+const ymLabel = ym => new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1).toLocaleDateString('en-IN', {month:'long', year:'numeric'});
+const ago = ms => { const s = (Date.now() - ms) / 1000; return s < 90 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago'; };
+const LINKS = {ats:'http://localhost:8765/', exp:'https://anilgupta2606.github.io/expenseTracker/', led:'https://anilgupta2606.github.io/InvestmentPlan/'};
+const SESSION = 'money-home-session';
+const signedIn = () => { try{ return sessionStorage.getItem(SESSION) === 'yes' || sessionStorage.getItem('ledger-session') === 'yes'; }catch(e){ return false; } };
+
+/* ---------- sign-in: the Expense Tracker's username and password (the Ledger's own, or admin / admin, where it is not used) */
+async function checkLogin(u, p){
+  const et = await Cloud.checkExpenseTrackerLogin(u, p);
+  if(et !== null) return et;
+  const plan = ledger();
+  if(plan && plan.auth && plan.auth.hash) return u.trim().toLowerCase() === String(plan.auth.user).toLowerCase() && await Cloud.sha256(u.trim().toLowerCase() + ':' + p) === plan.auth.hash;
+  return u.trim().toLowerCase() === 'admin' && p === 'admin';
+}
+function showLogin(){
+  $('app').innerHTML = `<div class="login"><form id="lf"><span class="eyebrow">Money home</span><h1 style="font-size:24px;margin:4px 0 10px">Sign in</h1>
+    <label class="eyebrow" for="u">Username</label><input id="u" autocomplete="username" autocapitalize="none" required>
+    <label class="eyebrow" for="p">Password</label><input id="p" type="password" autocomplete="current-password" required>
+    <p class="err" id="e" hidden>That username or password is wrong.</p><button>Sign in</button>
+    <p style="font-size:12px;color:var(--mut);margin:6px 0 0">The same sign-in as the Expense Tracker and the Ledger.</p></form></div>`;
+  $('u').focus();
+  $('lf').onsubmit = async e => { e.preventDefault();
+    if(!(await checkLogin($('u').value, $('p').value))){ $('e').hidden = false; return; }
+    try{ sessionStorage.setItem(SESSION, 'yes'); }catch(_){}
+    render(); };
+}
+
+/* ---------- what each app has, read in this browser */
+function ledger(){ try{ return JSON.parse(localStorage.getItem('ledger-draft-v2') || localStorage.getItem('ledger-state-v2') || 'null'); }catch(e){ return null; } }
+function expenseMonth(txns, m){          // the Expense Tracker's own month totals (plans.ts actualsFor)
+  const a = {spend:0, refunds:0, invested:0, redeemed:0, income:0};
+  txns.forEach(t => { if(!t.date.startsWith(m) || t.excluded || t.kind === 'ignore') return; const out = t.direction === 'debit';
+    if(t.kind === 'spend'){ if(out) a.spend += t.amount; else a.refunds += t.amount; }
+    else if(t.kind === 'investment'){ if(out) a.invested += t.amount; else a.redeemed += t.amount; }
+    else if(t.kind === 'cc_bill'){ if(out) a.spend += t.amount; }
+    else if(t.kind === 'income' && !out) a.income += t.amount; });
+  a.spend -= a.refunds;
+  return a;
+}
+const prevMonth = m => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 2, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+
+async function render(){
+  const plan = ledger();
+  const [et, ats] = await Promise.all([Cloud.expenseTracker(true), Cloud.atsLink() ? Cloud.atsHoldings().catch(e => ({err: e})) : Promise.resolve(null)]);
+  const hr = new Date().getHours(), hello = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const snapTotal = plan && plan.importedSnapshot ? Number(plan.importedSnapshot.total) || 0 : 0;
+  /* the corpus as the Ledger counts it: every asset class except the ones you left out (Vehicle…), plus what you track by hand */
+  const ex = plan && Array.isArray(plan.corpusExclude) ? plan.corpusExclude : ['VEHICLE'];
+  const corpus = plan ? ((plan.importedSnapshot || {}).rows || []).reduce((s, r) => s + (ex.indexOf(r.asset_type) < 0 ? Number(r.current_value) || 0 : 0), 0)
+    + (plan.manualAssets || []).reduce((s, m) => s + (ex.indexOf('MANUAL:' + m.id) < 0 ? Number(m.current) || 0 : 0), 0) : 0;
+  const sip = plan ? [].concat(plan.indiaFunds || [], plan.usFunds || []).reduce((s, f) => s + (Number(f.monthly) || 0), 0) : 0;
+
+  /* ATS */
+  let atsHtml;
+  if(ats && ats.ok){
+    const T = ats.total || {}, day = Number(T.day) || 0;
+    atsHtml = `<div class="kpis"><div class="k"><div class="l">Holdings now</div><div class="v">${lakh(T.value || 0)}</div><div class="s">invested ${lakh(T.invested || 0)}</div></div>
+      <div class="k"><div class="l">Today</div><div class="v ${day >= 0 ? 'up' : 'dn'}">${day >= 0 ? '+' : ''}${inr(day)}</div><div class="s">${T.day_pct != null ? pct(T.day_pct) : ''}</div></div>
+      <div class="k"><div class="l">Total gain</div><div class="v ${(T.gain || 0) >= 0 ? 'up' : 'dn'}">${(T.gain || 0) >= 0 ? '+' : ''}${lakh(T.gain || 0)}</div><div class="s">${T.gain_pct != null ? pct(T.gain_pct) : ''}</div></div>
+      <div class="k"><div class="l">Brokers synced</div><div class="v" style="font-size:15px">${ats.updated_at ? esc(new Date(ats.updated_at).toLocaleString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:false})) : '—'}</div><div class="s">${esc(ats.source || '')}</div></div></div>`;
+  } else {
+    const why = !Cloud.atsLink() ? 'Link ATS once from the Ledger (Holdings → Link ATS on this Mac) to see holdings here.'
+      : 'ATS isn’t running, or this isn’t the Mac it runs on.';
+    atsHtml = `<div class="note">${esc(why)}${plan && plan.atsReadAt ? ' Last read by the Ledger ' + esc(ago(new Date(plan.atsReadAt).getTime())) + '.' : ''}</div>`;
+  }
+
+  /* Expense Tracker */
+  let expHtml, investedThis = null, lastM = null;
+  const txns = et && et.txns || [];
+  if(txns.length){
+    lastM = txns.reduce((m, t) => t.date > m ? t.date : m, '').slice(0, 7);
+    const a = expenseMonth(txns, lastM), b = expenseMonth(txns, prevMonth(lastM));
+    investedThis = a.invested;
+    const diff = b.spend ? (a.spend / b.spend - 1) * 100 : null;
+    expHtml = `<div class="sub">${esc(ymLabel(lastM))} · statements up to ${esc(new Date(txns.reduce((m, t) => t.date > m ? t.date : m, '')).toLocaleDateString('en-IN', {day:'numeric', month:'short'}))}</div>
+      <div class="kpis"><div class="k"><div class="l">Spent</div><div class="v">${inr(a.spend)}</div><div class="s">${diff == null ? '' : `<span class="${diff > 0 ? 'dn' : 'up'}">${pct(diff)}</span> vs ${esc(ymLabel(prevMonth(lastM)).split(' ')[0])}`}</div></div>
+      <div class="k"><div class="l">Income</div><div class="v">${inr(a.income)}</div><div class="s">&nbsp;</div></div>
+      <div class="k"><div class="l">Invested</div><div class="v">${inr(a.invested)}</div><div class="s">${a.redeemed ? 'redeemed ' + inr(a.redeemed) : '&nbsp;'}</div></div>
+      <div class="k"><div class="l">Left over</div><div class="v ${a.income - a.spend - a.invested >= 0 ? 'up' : 'dn'}">${inr(a.income - a.spend - a.invested)}</div><div class="s">income − spent − invested</div></div></div>`;
+  } else {
+    expHtml = `<div class="note">No statements in this browser yet. Import them in the Expense Tracker and this card fills in.</div>`;
+  }
+
+  /* Ledger */
+  let ledHtml;
+  if(plan && !(plan.plan && plan.plan.starter)){
+    const targetHi = Number(plan.targetHighCr) || 0, targetLo = Number(plan.targetLowCr) || 0;
+    const prog = targetHi ? Math.min(100, corpus / (targetHi * 1e7) * 100) : 0;
+    const sipPct = sip && investedThis != null ? Math.min(100, investedThis / sip * 100) : null;
+    ledHtml = `<div class="kpis"><div class="k"><div class="l">Monthly SIP (plan)</div><div class="v">${inr(sip)}</div><div class="s">retire at ${esc(plan.retireAge || '—')}</div></div>
+      <div class="k"><div class="l">Target corpus</div><div class="v">₹${esc(targetLo)}–${esc(targetHi)} Cr</div><div class="s">&nbsp;</div></div></div>
+      <div><div class="k"><div class="l">Corpus toward the target</div></div><div class="bar" style="margin-top:6px"><i style="width:${prog.toFixed(1)}%"></i></div>
+        <div class="s" style="font-size:12px;color:var(--ink2);margin-top:4px">${lakh(corpus)} of ₹${esc(targetHi)} Cr · ${prog.toFixed(1)}%${ex.length ? ' · leaves out ' + esc(ex.filter(x => x.indexOf('MANUAL:') < 0).map(x => x.replace(/_/g, ' ').toLowerCase()).join(', ')) : ''}</div></div>
+      ${sipPct != null ? `<div><div class="k"><div class="l">Invested this month vs SIP</div></div><div class="bar" style="margin-top:6px"><i style="width:${sipPct.toFixed(1)}%"></i></div>
+        <div class="s" style="font-size:12px;color:var(--ink2);margin-top:4px">${inr(investedThis)} of ${inr(sip)} in ${esc(ymLabel(lastM))}, from your bank statements</div></div>` : ''}`;
+  } else {
+    ledHtml = `<div class="note">No plan in this browser yet. Open the Ledger and restore or sync your plan.</div>`;
+  }
+
+  $('app').innerHTML = `<header><div><span class="eyebrow">Money home · ${esc(new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'}))}</span><h1>${hello}</h1></div>
+      <div class="nw">${snapTotal ? `<div class="v">${lakh(snapTotal)}</div><div class="l">net worth · every asset INDmoney sees</div>` : ''}</div></header>
+    <div class="grid">
+      <section class="card" style="--c:var(--ats)"><h2>ATS</h2><div class="sub">Trading dashboard · on your Mac</div>${atsHtml}<a class="go" href="${LINKS.ats}" target="_blank" rel="noopener">Open ATS ↗</a></section>
+      <section class="card" style="--c:var(--exp)"><h2>Expense Tracker</h2>${expHtml}<a class="go" href="${LINKS.exp}" target="_blank" rel="noopener">Open Expense Tracker ↗</a></section>
+      <section class="card" style="--c:var(--led)"><h2>16-Year Ledger</h2><div class="sub">Investment plan</div>${ledHtml}<a class="go" href="${LINKS.led}" target="_blank" rel="noopener">Open the Ledger ↗</a></section>
+    </div>
+    <div class="foot">Read in this browser from the Expense Tracker and the Ledger, and from ATS when it is running on this Mac. Nothing is sent anywhere.
+      <button class="out" id="out" style="margin-left:8px">Sign out</button> <button class="out" id="re">Refresh</button></div>`;
+  $('out').onclick = () => { try{ sessionStorage.removeItem(SESSION); sessionStorage.removeItem('ledger-session'); }catch(_){} showLogin(); };
+  $('re').onclick = render;
+}
+
+try{ const t = localStorage.getItem('ledger-theme'); if(t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; }catch(e){}
+if(signedIn()) render(); else showLogin();
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && signedIn() && !document.getElementById('lf')) render(); });
+</script>
+</body>
+</html>

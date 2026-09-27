@@ -20,8 +20,9 @@ const Cloud = (function(){
      is opened only if it already exists - opening a missing one would create an
      empty copy that the Expense Tracker would then trip over. */
   let etPromise = null;
-  function expenseTracker(){
-    if(etPromise) return etPromise;
+  /* fresh: read again (the Expense Tracker may have imported statements since) */
+  function expenseTracker(fresh){
+    if(etPromise && !fresh) return etPromise;
     etPromise = (async ()=>{
       try{
         if(!window.indexedDB) return null;
@@ -44,13 +45,29 @@ const Cloud = (function(){
           });
           if(!s) return null;
           const st = s.settings || {};
-          return {auth: s.auth || null,
+          const txns = (s.txns || []).map(t=>({date:String(t.date || ''), amount:Number(t.amount) || 0, direction:t.direction, kind:t.kind,
+                                              category:t.category || '', excluded:!!t.excluded}));
+          return {auth: s.auth || null, txns, invest: investMonths(txns),
                   ai: {keys: Object.assign({}, st.aiKeys || {}, st.geminiKey ? {gemini: st.geminiKey} : {}),
                        order: st.aiOrder || [], off: st.aiOff || [], model: st.aiModel || {}}};
         } finally { db.close(); }
       }catch(e){ return null; }
     })();
     return etPromise;
+  }
+
+  /* Money put into (and taken out of) investments each month, by type - exactly what the
+     Expense Tracker's "Copy for Ledger" button copies (counted investment rows, amounts only). */
+  function investMonths(txns){
+    const r2 = n => Math.round(n * 100) / 100, by = {};
+    txns.forEach(t=>{
+      if(t.kind !== 'investment' || t.excluded || !/^\d{4}-\d{2}/.test(t.date)) return;
+      const m = t.date.slice(0, 7), e = by[m] || (by[m] = {invested:0, redeemed:0, byType:{}});
+      if(t.direction === 'debit'){ e.invested += t.amount; e.byType[t.category] = (e.byType[t.category] || 0) + t.amount; }
+      else e.redeemed += t.amount;
+    });
+    return Object.keys(by).sort().map(m=>({month:m, invested:r2(by[m].invested), redeemed:r2(by[m].redeemed),
+      byType: Object.fromEntries(Object.entries(by[m].byType).map(([k, v])=>[k, r2(v)]))}));
   }
 
   async function sha256(text){

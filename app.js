@@ -908,7 +908,7 @@ function renderOverview(){
       <div class="card pad">
         <div class="xi-head">
           <p>What actually went into investments each month, from your bank statements.</p>
-          <button class="reset-btn" id="xi-paste-toggle">Paste from expense tracker</button>
+          <button class="reset-btn" id="xi-paste-toggle" title="Only needed where the Expense Tracker is not used in this browser">Paste instead</button>
         </div>
         <div id="xi-paste" hidden>
           <textarea id="xi-text" rows="3" placeholder="Paste what the expense tracker's “Copy for Ledger” button copied" aria-label="Paste from expense tracker"></textarea>
@@ -5611,6 +5611,7 @@ function toggleProfileMenu(){
       <div class="pm-theme" role="group" aria-label="Theme">
         ${['system','light','dark'].map(t=>`<button data-theme-pick="${t}" aria-pressed="${theme===t}" class="${theme===t?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}
       </div>
+      <a class="pm-item" role="menuitem" href="home.html">Home — all three apps</a>
       <a class="pm-item" role="menuitem" href="https://anilgupta2606.github.io/expenseTracker/" target="_blank" rel="noopener">Expense tracker <span class="pm-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
       <a class="pm-item" role="menuitem" href="ats://open" target="_blank" rel="noopener" title="Opens the trading dashboard on this Mac - starts it first if it is not running">Open ATS <span class="pm-ext" aria-hidden="true">↗</span><span class="sr-only"> (the trading dashboard on this Mac)</span></a>
       <button class="pm-item danger" role="menuitem" data-pm="signout">Sign out</button>`;
@@ -5675,9 +5676,11 @@ function openPasswordModal(){
 }
 
 /* =========================================================
-   INVESTMENTS FROM THE EXPENSE TRACKER — pasted in, for information.
-   The expense tracker's "Copy for Ledger" button copies each month's
-   investment totals; nothing here reads or changes the rest of the plan.
+   INVESTMENTS FROM THE EXPENSE TRACKER — for information.
+   Both apps live on the same site, so in a browser where the Expense Tracker
+   is used the months are read straight from it, every time the plan opens.
+   Pasting its "Copy for Ledger" text still works (a phone without it, say).
+   Nothing here changes the rest of the plan.
    ========================================================= */
 function parseExpenseInvest(text){
   let v = null;
@@ -5699,7 +5702,7 @@ function renderExpenseInvest(){
   if(!wrap) return;
   const data = STATE.expenseInvest;
   if(!data || !data.months || !data.months.length){
-    wrap.innerHTML = `<p class="xi-empty">In the expense tracker, open <b>Overview</b> → <b>Investments by type</b> → <b>Copy for Ledger</b>, then tap <b>Paste from expense tracker</b> here.</p>`;
+    wrap.innerHTML = `<p class="xi-empty">Nothing yet. Import your bank statements in the <a href="https://anilgupta2606.github.io/expenseTracker/" target="_blank" rel="noopener">Expense Tracker</a> in this browser and each month’s investing appears here by itself.</p>`;
     return;
   }
   const months = data.months.slice().sort((a,b)=> a.month < b.month ? 1 : -1);
@@ -5718,7 +5721,7 @@ function renderExpenseInvest(){
         <tfoot><tr><td>${months.length} month${months.length===1?'':'s'}</td><td>${fmtINR(tot)}</td><td colspan="2">about ${fmtINR(avg)} a month · plan SIP ${fmtINR(totalSIP())}</td></tr></tfoot>
       </table>
     </div>
-    <p class="footnote">From your bank statements in the expense tracker, copied ${data.exportedAt ? fmtDate(data.exportedAt) : ''}. For information only — nothing else on this page uses it.</p>`;
+    <p class="footnote">${data.auto ? 'Read from the Expense Tracker in this browser' + (data.importedAt ? ' ' + escAttr(agoText(new Date(data.importedAt).getTime())) : '') + ' — it updates by itself.' : 'From your bank statements in the expense tracker, pasted ' + (data.exportedAt ? fmtDate(data.exportedAt) : '') + '.'} For information only — nothing else on this page changes with it.</p>`;
 }
 
 function wireExpenseInvest(){
@@ -5747,6 +5750,20 @@ function wireExpenseInvest(){
   });
 }
 
+/* Reads the months from the Expense Tracker in this browser; saves them only if they changed. */
+async function readExpenseTracker(){
+  const et = await Cloud.expenseTracker(true);
+  if(!et || !et.invest || !et.invest.length) return;
+  const cur = STATE.expenseInvest || {};
+  if(JSON.stringify(cur.months || []) === JSON.stringify(et.invest)) return;
+  const wasDirty = dirty;
+  STATE.expenseInvest = {auto:true, exportedAt:new Date().toISOString().slice(0,10), importedAt:new Date().toISOString(), months:et.invest};
+  if(wasDirty) markDirty();
+  else { persistSaved(STATE); Cloud.markSaved(); runSync(true); }
+  renderExpenseInvest();
+  if(typeof refreshOverviewDerived === 'function' && document.getElementById('panel-overview')) try{ refreshOverviewDerived(); }catch(e){}
+}
+
 /* =========================================================
    BOOT
    ========================================================= */
@@ -5756,6 +5773,8 @@ function afterSignIn(){
   if(AFTER_SIGN_IN_DONE) return;
   AFTER_SIGN_IN_DONE = true;
   startSync();
+  readExpenseTracker();
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') readExpenseTracker(); });
   if(ATS_JUST_LINKED){ flashSaveStatus('ATS linked — reading your holdings'); openSettings('ats'); refreshFromAts(false); }
   else refreshFromAts(true);
 }
