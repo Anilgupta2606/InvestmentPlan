@@ -500,6 +500,81 @@ function computeForwardProjection({startAge, startValue, monthlySIP, stepUp, equ
   return pts;
 }
 
+
+/* =========================================================
+   CHANCE OF REACHING THE TARGET — the same plan run through a few
+   thousand possible markets instead of one fixed rate. Equity grows at
+   the plan's rate in the typical future (so the middle outcome matches
+   the projection above) but moves up and down around it month by month,
+   with fat tails: crashes come more often than a bell curve says (a
+   Student-t, 5 degrees of freedom). Debt funds and FDs grow at their
+   rates; EPF / NPS are carried flat, as in the projection. The SIP steps
+   up each April and stops at retirement; the corpus is read on the
+   projection's own basis - the end of the retirement-age year.
+   A seeded draw, so the same plan always gives the same answer.
+   ========================================================= */
+function seededRandom(seed){
+  let a = seed >>> 0;
+  return function(){ a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function simulateTarget(o){
+  const rnd = seededRandom(o.seed || 20260928);
+  const gauss = () => { let u = 0; while(u === 0) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); };
+  const DF = 5, unit = Math.sqrt((DF - 2) / DF);
+  const shock = () => { let c = 0; for(let k = 0; k < DF; k++){ const z = gauss(); c += z * z; } return gauss() / Math.sqrt(c / DF) * unit; };
+  const runs = o.runs || 2000;
+  const endAt = o.endAge + 1;                             // the end of the retirement-age year, as the projection table
+  const months = Math.max(1, Math.round((endAt - o.startAge) * 12));
+  const payMonths = Math.max(0, Math.round((o.endAge - o.startAge) * 12));
+  const mu = Math.log(1 + o.equityRate) / 12, sd = o.vol / Math.sqrt(12);
+  const dM = Math.pow(1 + o.debtRate, 1 / 12) - 1, fM = Math.pow(1 + o.fdRate, 1 / 12) - 1;
+  const month0 = (o.now || new Date()).getMonth();
+  const ages = []; for(let a = Math.ceil(o.startAge + 1e-9); a <= endAt; a++) ages.push(a);
+  const grid = ages.map(() => new Float64Array(runs));
+  const finals = new Float64Array(runs);
+  for(let r = 0; r < runs; r++){
+    let E = o.equity, D = o.debt, F = o.fd, sip = o.equitySIP, ai = 0;
+    for(let m = 1; m <= months; m++){
+      if((month0 + m) % 12 === 3 && m <= payMonths && rnd() < (o.stepUpKept == null ? 1 : o.stepUpKept)) sip *= 1 + o.stepUp;   // April
+      const paying = m <= payMonths;
+      E = E * Math.exp(mu + sd * shock()) + (paying ? sip : 0);
+      D = D * (1 + dM) + (paying ? o.debtSIP : 0);
+      F = F * (1 + fM);
+      const age = o.startAge + m / 12;
+      while(ai < ages.length && age >= ages[ai] - 1e-9){ grid[ai][r] = E + D + F + o.flat; ai++; }
+    }
+    finals[r] = E + D + F + o.flat;
+  }
+  const q = (arr, p) => arr[Math.min(arr.length - 1, Math.max(0, Math.floor(p * (arr.length - 1))))];
+  const band = grid.map((arr, i) => { const s = Float64Array.from(arr).sort(); return {age: ages[i], p10: q(s, .1), p25: q(s, .25), p50: q(s, .5), p75: q(s, .75), p90: q(s, .9)}; });
+  const sorted = Float64Array.from(finals).sort();
+  const share = t => { let n = 0; for(let i = 0; i < runs; i++) if(finals[i] >= t) n++; return n / runs; };
+  return {runs, band, p10: q(sorted, .1), p50: q(sorted, .5), p90: q(sorted, .9),
+          low: share(o.targetLow), high: share(o.targetHigh), endAge: o.endAge};
+}
+/* The plan's numbers, from today: your real age and your corpus as it stands. */
+const CHANCE = {vol: 0.18, kept: 1};
+function chanceInputs(over){
+  const b = startingBuckets(), a = over || {};
+  return {startAge: ageAt(new Date()), endAge: Math.round(a.endAge || STATE.retireAge),
+    equity: a.existing != null ? a.existing : b.equity, debt: a.existingPpf != null ? a.existingPpf : b.ppf,
+    fd: a.existingFd != null ? a.existingFd : b.fd, flat: a.existingFlat != null ? a.existingFlat : b.flat,
+    equitySIP: a.baseSIP != null ? a.baseSIP : equitySIP(), debtSIP: a.ppfMonthly != null ? a.ppfMonthly : debtSIP(),
+    stepUp: a.stepUp != null ? a.stepUp : STATE.stepUp, equityRate: a.equityRate != null ? a.equityRate : STATE.equityRate,
+    debtRate: a.ppfRate != null ? a.ppfRate : STATE.ppfRate, fdRate: a.fdRate != null ? a.fdRate : STATE.fdRate,
+    vol: CHANCE.vol, stepUpKept: CHANCE.kept, targetLow: STATE.targetLowCr * 1e7, targetHigh: STATE.targetHighCr * 1e7};
+}
+let CHANCE_CACHE = {sig: '', res: null};
+function chanceFor(inputs, runs){
+  const sig = JSON.stringify([inputs, runs]);
+  if(CHANCE_CACHE.sig === sig) return CHANCE_CACHE.res;
+  const res = simulateTarget({...inputs, runs});
+  CHANCE_CACHE = {sig, res};
+  return res;
+}
+const pctTxt = p => p >= 0.995 ? '99%+' : p < 0.005 ? 'under 1%' : Math.round(p * 100) + '%';
+
 /* =========================================================
    TAB / PANEL SHELL
    ========================================================= */
@@ -837,6 +912,7 @@ function renderOverview(){
         <div class="l">Projected at <span id="kpi-proj-age">${retireAge}</span></div>
         <div class="v" id="kpi-proj">—</div>
         <span class="state" id="kpi-proj-state"></span>
+        <div class="sub" id="kpi-chance"></div>
       </div>
       <div class="card kpi">
         <div class="l">Next action</div>
@@ -1197,6 +1273,14 @@ function refreshHeadline(){
     const onTrack = end.total >= low;
     st.className = 'state ' + (onTrack ? 'ok' : 'short');
     st.textContent = onTrack ? 'On track for the target' : fmtCompact(low - end.total) + ' short of target';
+  }
+  const kc = document.getElementById('kpi-chance');
+  if(kc){
+    try{ const c = chanceFor(chanceInputs(), 2000);
+      kc.innerHTML = `<b>${pctTxt(c.low)}</b> chance of ₹${STATE.targetLowCr} Cr, allowing for market swings · <a href="#" id="kpi-chance-go">why</a>`;
+      const go = document.getElementById('kpi-chance-go');
+      if(go) go.onclick = e => { e.preventDefault(); selectTab('projection'); setTimeout(() => { const c2 = document.getElementById('chance-card'); if(c2) c2.scrollIntoView({behavior:'smooth', block:'start'}); }, 80); };
+    }catch(e){ kc.textContent = ''; }
   }
   const next = STATE.calendar.filter(c=>!c.done).sort((a,b)=>(a.age-b.age)||(a.year-b.year))[0];
   set('kpi-next', next ? next.action : 'All actions done');
@@ -1686,6 +1770,11 @@ function renderProjection(){
     <div id="proj-note"></div>
     <div class="result-row" id="result-row"></div>
 
+    <div class="card pad" style="margin-bottom:18px;" id="chance-card">
+      <div class="block-title" style="margin-bottom:12px;">Chance of reaching the target</div>
+      <div id="chance-body"></div>
+    </div>
+
     <div class="card pad">
       <div class="block-title" style="margin-bottom:16px;" id="chart-main-title">Corpus by bucket</div>
       <div class="chart-wrap" id="chart-main"></div>
@@ -1753,6 +1842,7 @@ function renderProjection(){
          conservative by whatever those two actually earn. Equity, the debt/liquid MF and FD each compound at their own rate.</div>`
       : '';
     renderProjectionResults(rows);
+    renderChance(projAssumptions);
     renderMainChart(rows);
     renderIncomeChart(rows);
     renderProjTable(rows);
@@ -1776,6 +1866,84 @@ function renderProjection(){
   });
 
   recalc();
+}
+
+/* ---------- the chance, on the Projection tab ---------- */
+function renderChance(assumptions){
+  const box = document.getElementById('chance-body');
+  if(!box) return;
+  const inp = chanceInputs(assumptions);
+  const r = chanceFor(inp, 2000);
+  const low = STATE.targetLowCr, high = STATE.targetHighCr;
+  const years = inp.endAge + 1 - inp.startAge;
+  const today = v => STATE.projTodayMoney ? deflate(v, years, STATE.inflation) : v;
+  const col = p => p >= 0.8 ? 'var(--good)' : p >= 0.5 ? 'var(--warning)' : 'var(--critical)';
+  // what would move it: the same draws, one change at a time
+  const lever = (label, over) => { const x = simulateTarget({...inp, ...over, runs: 1000}); return {label, p: x.low}; };
+  const base1k = simulateTarget({...inp, runs: 1000}).low;
+  const levers = [
+    lever('₹10,000 more SIP a month', {equitySIP: inp.equitySIP + 10000}),
+    lever(`retiring at ${inp.endAge + 1} instead of ${inp.endAge}`, {endAge: inp.endAge + 1}),
+    lever(`a ${Math.round((inp.stepUp + 0.05) * 100)}% step-up each April`, {stepUp: inp.stepUp + 0.05}),
+    lever('one April step-up in two skipped', {stepUpKept: 0.5}),
+  ];
+  box.innerHTML = `
+    <div class="chance-head">
+      <div class="chance-big"><span class="v num" style="color:${col(r.low)}">${pctTxt(r.low)}</span><span class="l">chance of ₹${low} Cr or more by ${inp.endAge}</span></div>
+      <div class="chance-big"><span class="v num" style="color:${col(r.high)}">${pctTxt(r.high)}</span><span class="l">chance of ₹${high} Cr or more</span></div>
+      <div class="chance-range">
+        <div class="row"><span>Middle outcome</span><b class="num">${fmtCompact(today(r.p50))}</b></div>
+        <div class="row"><span>1 in 10 futures below</span><b class="num">${fmtCompact(today(r.p10))}</b></div>
+        <div class="row"><span>1 in 10 futures above</span><b class="num">${fmtCompact(today(r.p90))}</b></div>
+      </div>
+    </div>
+    <div class="controls chance-controls">
+      <div class="control"><label>Market swings (volatility) <span class="val num" id="lbl-vol">${Math.round(CHANCE.vol * 100)}% a year</span></label>
+        <input type="range" id="in-vol" min="0.10" max="0.30" step="0.01" value="${CHANCE.vol}">
+        <div class="hint">Indian equity has swung about 16-20% a year; 18% allows for midcaps and gold.</div></div>
+      <div class="control"><label>April step-ups you actually make <span class="val num">${Math.round(CHANCE.kept * 100)}%</span></label>
+        <input type="range" id="in-kept" min="0" max="1" step="0.25" value="${CHANCE.kept}">
+        <div class="hint">The plan assumes all of them; a missed one costs more than it looks.</div></div>
+    </div>
+    <div class="chart-wrap" id="chart-chance"></div>
+    <div class="chart-legend">
+      <div class="item"><span class="sw" style="background:color-mix(in srgb,var(--accent) 22%,transparent)"></span>8 in 10 futures</div>
+      <div class="item"><span class="sw" style="background:color-mix(in srgb,var(--accent) 45%,transparent)"></span>middle half</div>
+      <div class="item"><span class="sw" style="background:var(--accent)"></span>middle outcome</div>
+      <div class="item"><span class="sw" style="background:var(--gold)"></span>target band</div>
+    </div>
+    <div class="block-title" style="margin:18px 0 8px;">What moves the chance of ₹${low} Cr (now ${pctTxt(base1k)})</div>
+    <div class="levers">${levers.map(l => `<div class="lever"><span>${escAttr(l.label)}</span><b class="num" style="color:${l.p > base1k + 0.005 ? 'var(--good)' : l.p < base1k - 0.005 ? 'var(--critical)' : 'var(--ink-secondary)'}">${pctTxt(l.p)}</b></div>`).join('')}</div>
+    <p class="footnote">${r.runs.toLocaleString('en-IN')} possible markets from today (age ${inp.startAge.toFixed(1)}, corpus ${fmtCompact(inp.equity + inp.debt + inp.fd + inp.flat)}), each month's equity return drawn at random around ${fmtPct(inp.equityRate)} a year - the plan's rate is the typical future, not a promise.
+      Debt funds (${fmtPct(inp.debtRate)}) and FDs (${fmtPct(inp.fdRate)}) grow steadily; EPF / NPS are carried flat, as in the projection. Read at the end of the age-${inp.endAge} year, like the table below. ${STATE.projTodayMoney ? 'Outcomes shown in today\'s money; the targets are in future rupees.' : 'Future rupees.'} A guide to the odds, not a forecast.</p>`;
+  drawChanceChart(r, today);
+  const vol = document.getElementById('in-vol'), kept = document.getElementById('in-kept');
+  vol.addEventListener('change', () => { CHANCE.vol = Number(vol.value); renderChance(assumptions); refreshOverviewDerived && refreshOverviewDerived(); });
+  vol.addEventListener('input', () => { document.getElementById('lbl-vol').textContent = Math.round(vol.value * 100) + '% a year'; });
+  kept.addEventListener('change', () => { CHANCE.kept = Number(kept.value); renderChance(assumptions); refreshOverviewDerived && refreshOverviewDerived(); });
+}
+function drawChanceChart(r, today){
+  const wrap = document.getElementById('chart-chance');
+  if(!wrap) return;
+  const pts = r.band.map(b => ({age: b.age, p10: today(b.p10), p25: today(b.p25), p50: today(b.p50), p75: today(b.p75), p90: today(b.p90)}));
+  if(pts.length < 2){ wrap.innerHTML = ''; return; }
+  const W = 920, H = 320, ML = 70, MR = 16, MT = 14, MB = 30, pw = W - ML - MR, ph = H - MT - MB;
+  const tl = STATE.targetLowCr * 1e7, th = STATE.targetHighCr * 1e7;
+  const maxV = Math.max(...pts.map(p => p.p90), th) * 1.05;
+  const a0 = pts[0].age, a1 = pts[pts.length - 1].age;
+  const x = a => ML + (a - a0) / (a1 - a0 || 1) * pw, y = v => MT + ph - v / maxV * ph;
+  const area = (hi, lo) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.age).toFixed(1)},${y(p[hi]).toFixed(1)}`).join('') +
+    pts.slice().reverse().map(p => `L${x(p.age).toFixed(1)},${y(p[lo]).toFixed(1)}`).join('') + 'Z';
+  const ticks = []; for(let k = 0; k <= 4; k++) ticks.push(maxV * k / 4);
+  wrap.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Range of outcomes by age">
+    ${ticks.map(v => `<line class="gridline" x1="${ML}" x2="${W - MR}" y1="${y(v)}" y2="${y(v)}"/><text class="axis-label" x="${ML - 8}" y="${y(v) + 4}" text-anchor="end">${fmtCompact(v)}</text>`).join('')}
+    <rect x="${ML}" y="${y(th)}" width="${pw}" height="${Math.max(1, y(tl) - y(th))}" fill="var(--gold)" fill-opacity="0.18"/>
+    <line x1="${ML}" x2="${W - MR}" y1="${y(tl)}" y2="${y(tl)}" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <path d="${area('p90', 'p10')}" fill="var(--accent)" fill-opacity="0.18"/>
+    <path d="${area('p75', 'p25')}" fill="var(--accent)" fill-opacity="0.32"/>
+    <path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.age).toFixed(1)},${y(p.p50).toFixed(1)}`).join('')}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+    ${pts.filter((p, i) => (i % 2 === 0 && i < pts.length - 2) || i === pts.length - 1).map((p, k, arr) => `<text class="axis-label" x="${x(p.age)}" y="${H - 8}" text-anchor="${k === arr.length - 1 ? 'end' : 'middle'}">${k === arr.length - 1 ? `end of ${p.age - 1}` : p.age}</text>`).join('')}
+  </svg>`;
 }
 
 function renderProjectionResults(rows){
@@ -5178,6 +5346,7 @@ function ledgerContext(){
     corpusNow: r2(corpusFigure()), investedNow: r2(ci.total),
     projectionAtRetirement: {age:end.age, total:r2(end.total), totalInWords: fmtCompact(end.total), monthlyIncomeAt4pct:r2(end.income)},
     targetInWords: '₹' + STATE.targetLowCr + '–' + STATE.targetHighCr + ' Cr', corpusNowInWords: fmtCompact(corpusFigure()),
+    chanceOfTarget: (()=>{ try{ const c = chanceFor(chanceInputs(), 2000); return {low: pctTxt(c.low), high: pctTxt(c.high), middleOutcome: fmtCompact(c.p50), note: 'from a few thousand simulated markets around the plan rate, volatility ' + Math.round(CHANCE.vol*100) + '%'}; }catch(e){ return null; } })(),
     projectionByAge: rows.filter((r,i)=> i%2===0 || i===rows.length-1).map(r=>({age:r.age, total:r2(r.total), monthlySIP: r.monthlySIP===null ? 0 : r2(r.monthlySIP)})),
     driftFromPlan: pva.rows.slice(0,8).map(r=>({fund:r.name, plannedSharePct:+(r.planned*100).toFixed(1), actualSharePct:+(r.actual*100).toFixed(1)})),
     alerts: ruleAlerts().map(a=>a.level + ': ' + a.title),
