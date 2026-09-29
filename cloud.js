@@ -45,8 +45,7 @@ const Cloud = (function(){
           });
           if(!s) return null;
           const st = s.settings || {};
-          const txns = (s.txns || []).map(t=>({date:String(t.date || ''), amount:Number(t.amount) || 0, direction:t.direction, kind:t.kind,
-                                              category:t.category || '', excluded:!!t.excluded, paired:!!t.pairId}));
+          const txns = etRows(s.txns);
           return {auth: s.auth || null, txns, invest: investMonths(txns),
                   ai: {keys: Object.assign({}, st.aiKeys || {}, st.geminiKey ? {gemini: st.geminiKey} : {}),
                        order: st.aiOrder || [], off: st.aiOff || [], model: st.aiModel || {}}};
@@ -54,6 +53,21 @@ const Cloud = (function(){
       }catch(e){ return null; }
     })();
     return etPromise;
+  }
+
+  /* The Expense Tracker's transactions as its own totals see them: a payment split into parts
+     (Rs 1,000 Shopping + Rs 4,000 Gold, say) is one row per part, each with its own amount, type and
+     category; Counted, the date and the card pairing are the payment's. Before splits were read,
+     a split payment's investment part was missed here and its spending counted in full. */
+  function etRows(list){
+    const out = [];
+    (list || []).forEach(t=>{
+      const base = {date:String(t.date || ''), direction:t.direction, excluded:!!t.excluded, paired:!!t.pairId};
+      const parts = Array.isArray(t.splits) && t.splits.length >= 2 ? t.splits : null;
+      if(parts) parts.forEach(p=>out.push(Object.assign({}, base, {amount:Number(p.amount) || 0, kind:p.kind, category:p.category || ''})));
+      else out.push(Object.assign({}, base, {amount:Number(t.amount) || 0, kind:t.kind, category:t.category || ''}));
+    });
+    return out;
   }
 
   /* Money put into (and taken out of) investments each month, by type - exactly what the
@@ -398,7 +412,7 @@ const Cloud = (function(){
   }
   const unlinkAts = () => lsSet(ATS_KEY, undefined);
 
-  return {expenseTracker, checkExpenseTrackerLogin, sha256,
+  return {expenseTracker, etRows, investMonths, checkExpenseTrackerLogin, sha256,
           syncConfig, saveSyncConfig, expenseTrackerSync, syncNow, markSaved, forgetSync, otherVersion, dropOtherVersion, seal, unseal,
           PROVIDERS, loadAi, aiSettings, aiLocal, saveAiLocal, aiAvailable, aiNames, resting, wake, chat, listModels, rankModels,
           atsLink, takeAtsLinkFromUrl, atsLinkUrl, atsHoldings, unlinkAts};
