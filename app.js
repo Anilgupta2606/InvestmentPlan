@@ -5636,6 +5636,11 @@ async function askSend(q){
     reply.raw = res.text;
     reply.shown = parts.shown || 'Here is what I propose:';
     reply.via = 'Answered by ' + res.provider + ' · ' + res.model;
+    // figures the AI worked out itself (not read from the plan) are named, so a sum is never mistaken for a fact
+    if(typeof MoneyAsk !== 'undefined'){
+      const own = MoneyAsk.checkFigures(reply.shown, askInstructions());
+      if(own.length) reply.via += ' · worked out by the AI, not in your plan: ' + own.slice(0, 4).join(', ') + ' — the Overview shows the plan’s own projection';
+    }
     if(parts.ops) reply.changes = vetOps(parts.ops);
   }catch(e){
     reply.shown = '';
