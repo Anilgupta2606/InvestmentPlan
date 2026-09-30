@@ -5207,6 +5207,9 @@ function syncSectionHTML(){
       <div class="corpus-actions"><button class="snap-add-btn" id="sync-now" ${SYNC_BUSY ? 'disabled' : ''}>Sync now</button>
         <button class="del-btn wide" id="sync-off">Turn off on this device</button></div>`;
   }
+  // switching sync on is done once for every app, in Money Home → Setup
+  if(typeof MoneyShared !== 'undefined') return `<p class="footnote" style="margin-top:0">Off on this device. Turn it on once for all your apps in Money Home → Setup (a GitHub token and a passphrase); the plan then syncs by itself, encrypted.</p>
+      <div class="corpus-actions"><a class="snap-add-btn" href="/setup/#sync" style="text-decoration:none;">Turn on sync in Setup</a></div>`;
   const et = Cloud.expenseTrackerSync();
   return `<p class="footnote" style="margin-top:0">Keep the same plan on your laptop and phone. It is encrypted on this device with a passphrase only you know, then stored in a private GitHub Gist.</p>
     ${et ? `<div class="notice ok" style="margin:10px 0;"><b>The Expense Tracker already syncs in this browser</b>
