@@ -5973,3 +5973,6 @@ document.getElementById('profile-btn').addEventListener('click', e=>{ e.stopProp
 document.getElementById('footer-updated').textContent = 'Rendered ' + fmtDate(new Date());
 renderPlanSource();
 if(isSignedIn()) afterSignIn();
+
+/* which AI answers, and switching it - the same switch as in every app (the site's central AI) */
+if(typeof MoneyAI !== 'undefined' && MoneyAI.widget) MoneyAI.widget(document.getElementById('ai-switch'));
