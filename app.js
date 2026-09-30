@@ -5794,7 +5794,7 @@ function toggleProfileMenu(){
       <div class="pm-theme" role="group" aria-label="Theme">
         ${['system','light','dark'].map(t=>`<button data-theme-pick="${t}" aria-pressed="${theme===t}" class="${theme===t?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}
       </div>
-      <a class="pm-item" role="menuitem" href="/">Home — all three apps</a>
+      <a class="pm-item" role="menuitem" href="/">Money Home — all your apps</a>
       <a class="pm-item" role="menuitem" href="https://anilgupta2606.github.io/expenseTracker/" target="_blank" rel="noopener">Expense tracker <span class="pm-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
       <a class="pm-item" role="menuitem" href="ats://open" target="_blank" rel="noopener" title="Opens the trading dashboard on this Mac - starts it first if it is not running">Open ATS <span class="pm-ext" aria-hidden="true">↗</span><span class="sr-only"> (the trading dashboard on this Mac)</span></a>
       <button class="pm-item danger" role="menuitem" data-pm="signout">Sign out</button>`;
