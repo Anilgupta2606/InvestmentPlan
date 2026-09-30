@@ -5224,6 +5224,13 @@ function syncSectionHTML(){
     <p class="footnote">Both stay on this device only. If you forget the passphrase, the synced copy can’t be opened; the plan on each device is unaffected.</p>`;
 }
 function aiSectionHTML(){
+  // the keys of all the apps are set in one place (Money Home → Setup); here only who answers
+  if(Cloud.central){
+    const st = typeof MoneyAI !== 'undefined' ? MoneyAI.aiStatus() : [];
+    return `<p class="footnote" style="margin-top:0">Ask AI uses the AI keys shared by all your apps. The best service answers first, each with its best model, and the next takes over when one is out of free quota.</p>
+      <p style="font-size:13px;margin:8px 0;">${st.length ? 'Answering: ' + st.map(x=>escAttr(x.name) + (x.model ? ' (' + escAttr(x.model) + ')' : '') + (x.resting ? ' — resting' : '')).join(' → ') : 'No AI key yet.'}</p>
+      <div class="corpus-actions"><a class="snap-add-btn" href="/setup/#ai" style="text-decoration:none;">AI keys and order — in Setup</a></div>`;
+  }
   const s = Cloud.aiSettings(), own = Cloud.aiLocal();
   const rows = Cloud.PROVIDERS.map(p=>{
     const k = s.keys[p.id], from = s.from[p.id], r = Cloud.resting(p.id), on = s.off.indexOf(p.id) < 0;
