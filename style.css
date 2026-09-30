@@ -109,7 +109,10 @@ a{color:var(--accent-strong);}
   padding:22px 0 14px;
   border-bottom:1px solid var(--border);
 }
-.topbar-inner{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.topbar-inner{display:flex;align-items:center;gap:14px 26px;flex-wrap:wrap;}
+/* the title on the left; the plan's figures and the AI, Ask AI and profile buttons on the right */
+.topbar-inner .topstat-row{margin-left:auto;align-items:center;}
+.top-actions{display:flex;align-items:center;gap:10px;}
 .brand-eyebrow{
   font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--ink-muted);margin-bottom:6px;display:block;
@@ -788,6 +791,7 @@ body.printing #print-view{display:block;padding:26px 30px;max-width:900px;margin
   .topbar-inner{gap:14px;}
   .brand h1{font-size:1.5rem;}
   .search-wrap{max-width:none;flex-basis:100%;}
+  .topbar-inner .topstat-row{margin-left:0;}
   .topstat-row{gap:18px;}
   .topstat{text-align:left;}
   .tabs{position:sticky;top:0;padding-top:10px;}
@@ -831,7 +835,11 @@ body.printing #print-view{display:block;padding:26px 30px;max-width:900px;margin
 }
 
 /* ---------- grouped navigation ---------- */
-.navwrap{position:sticky;top:78px;z-index:29;background:var(--bg);border-bottom:1px solid var(--border);}
+.navwrap{position:sticky;top:78px;z-index:29;background:var(--bg);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:16px;}
+.navwrap .groups{grid-column:1;grid-row:1;}
+.navwrap .subtabs{grid-column:1 / -1;grid-row:2;}
+.navwrap .search-wrap{grid-column:2;grid-row:1;width:300px;max-width:none;}
 .navwrap .tabs{position:static;border-bottom:none;}
 .groups{display:flex;gap:6px;overflow-x:auto;padding:12px 0 8px;scrollbar-width:none;}
 .groups::-webkit-scrollbar{display:none;}
@@ -846,7 +854,8 @@ body.printing #print-view{display:block;padding:26px 30px;max-width:900px;margin
 .subtabs[hidden],.tab-btn[hidden]{display:none !important;}
 .review-btn[hidden]{display:none;}
 @media (max-width:700px){
-  .navwrap{top:0;}
+  .navwrap{top:0;grid-template-columns:1fr;}
+  .navwrap .search-wrap{grid-column:1;grid-row:1;width:auto;padding:10px 0 8px;}   /* the section pills are the bottom bar here */
   .groups{position:fixed;left:0;right:0;bottom:0;z-index:70;justify-content:space-around;gap:0;
     padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));background:var(--surface);
     border-top:1px solid var(--border);box-shadow:0 -6px 18px rgb(16 24 40 / 0.08);overflow:visible;}

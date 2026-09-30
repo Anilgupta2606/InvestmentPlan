@@ -617,6 +617,9 @@ function buildShell(){
   tabsEl.setAttribute('role','tablist');
   tabsEl.setAttribute('aria-label','Pages');
   wrap.appendChild(tabsEl);
+  // "Filter this tab" sits on the tabs' own row, next to what it filters
+  const search = document.querySelector('.topbar .search-wrap');
+  if(search) wrap.appendChild(search);
   GROUPS.forEach(g=>{
     const b = document.createElement('button');
     b.className = 'group-btn';
