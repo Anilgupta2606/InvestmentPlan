@@ -5676,6 +5676,7 @@ async function sha256(text){
   return Array.prototype.map.call(new Uint8Array(buf), b=>b.toString(16).padStart(2,'0')).join('');
 }
 async function checkLogin(user, pass){
+  if(typeof MoneyShared !== 'undefined') return MoneyShared.checkLogin(user, pass, STATE.auth && STATE.auth.hash ? {user: STATE.auth.user, hash: STATE.auth.hash} : null);   // one sign-in for every app
   const et = await Cloud.checkExpenseTrackerLogin(user, pass);
   if(et !== null) return et;
   const want = (STATE.auth && STATE.auth.hash) || await sha256('admin:admin');
