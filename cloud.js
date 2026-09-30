@@ -412,8 +412,16 @@ const Cloud = (function(){
   }
   const unlinkAts = () => lsSet(ATS_KEY, undefined);
 
-  return {expenseTracker, etRows, investMonths, checkExpenseTrackerLogin, sha256,
+  const api = {expenseTracker, etRows, investMonths, checkExpenseTrackerLogin, sha256,
           syncConfig, saveSyncConfig, expenseTrackerSync, syncNow, markSaved, forgetSync, otherVersion, dropOtherVersion, seal, unseal,
           PROVIDERS, loadAi, aiSettings, aiLocal, saveAiLocal, aiAvailable, aiNames, resting, wake, chat, listModels, rankModels,
           atsLink, takeAtsLinkFromUrl, atsLinkUrl, atsHoldings, unlinkAts};
+  /* The site's central AI (the AI hub on Money Home, /ai/ai.js) when it is loaded: one set of keys for every app and
+     the same choice of service and model (the best first). This file's own copy is used only when it is missing. */
+  if(typeof MoneyAI !== 'undefined'){
+    ['PROVIDERS', 'loadAi', 'aiSettings', 'aiLocal', 'saveAiLocal', 'aiAvailable', 'aiNames', 'resting', 'wake', 'listModels', 'rankModels'].forEach(k=>{ api[k] = MoneyAI[k]; });
+    api.chat = (system, turns, signal) => MoneyAI.chat(system, turns, {}, signal);
+    api.central = true;
+  }
+  return api;
 })();

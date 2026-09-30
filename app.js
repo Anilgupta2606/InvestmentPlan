@@ -5231,15 +5231,15 @@ function aiSectionHTML(){
       : !on ? '<span class="recon-status missing">off</span>'
       : r ? '<span class="recon-status missing" title="' + escAttr(r.why) + '">resting</span>'
       : '<span class="recon-status held">ready</span>';
-    return `<tr><td class="name">${escAttr(p.name)}<div class="recon-sub">${from === 'expense-tracker' ? 'key from the Expense Tracker' : from === 'ledger' ? 'key saved here' : '<a href="' + p.signupUrl + '" target="_blank" rel="noopener">get a key</a>'}</div></td>
+    return `<tr><td class="name">${escAttr(p.name)}<div class="recon-sub">${from === 'hub' ? 'key in the AI hub' : from === 'expense-tracker' ? 'key from the Expense Tracker' : from === 'ledger' ? 'key saved here' : from === 'trip-vault' ? 'key from Trip Vault' : '<a href="' + p.signupUrl + '" target="_blank" rel="noopener">get a key</a>'}</div></td>
       <td>${state}</td>
       <td><input class="inline-input" type="password" data-ai-key="${p.id}" placeholder="${escAttr((own.keys || {})[p.id] ? '••••••' : p.placeholder)}" autocomplete="off" spellcheck="false"></td>
       <td><label style="font-size:12px;white-space:nowrap;"><input type="checkbox" data-ai-on="${p.id}" ${on ? 'checked' : ''}> use</label></td></tr>`;
   }).join('');
-  return `<p class="footnote" style="margin-top:0">Ask AI tries these in order and moves on when one is out of free quota (it rests 15 minutes). Keys you already added in the Expense Tracker are used automatically in this browser; a key typed here wins over it. Keys stay on this device.</p>
+  return `<p class="footnote" style="margin-top:0">${Cloud.central ? 'These are the <b>shared AI keys of all your apps</b> (Money Home, Trip Vault, the Expense Tracker and this plan) — a key typed here is used by all of them. Ask AI takes the best service first and its best model, and moves on when one is out of free quota (it rests 15 minutes). <a href="/ai/">Open the AI hub</a> to test keys or choose which AI goes first.' : 'Ask AI tries these in order and moves on when one is out of free quota (it rests 15 minutes). Keys you already added in the Expense Tracker are used automatically in this browser; a key typed here wins over it. Keys stay on this device.'}</p>
     <div class="table-wrap" style="margin-top:10px;"><table style="min-width:0;"><thead><tr><th class="name">Service</th><th>State</th><th>Key (leave blank to keep)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="corpus-actions" style="margin-top:10px;"><button class="snap-add-btn" id="ai-save">Save AI settings</button>
-      <button class="reset-btn" id="ai-clear">Remove keys saved here</button><span id="ai-msg" style="font-size:12px;color:var(--ink-muted);"></span></div>`;
+      ${Cloud.central ? '' : '<button class="reset-btn" id="ai-clear">Remove keys saved here</button>'}<span id="ai-msg" style="font-size:12px;color:var(--ink-muted);"></span></div>`;
 }
 function atsSectionHTML(){
   const l = Cloud.atsLink();
