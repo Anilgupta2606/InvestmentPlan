@@ -24,3 +24,7 @@ A browser with no plan yet shows a small example until you restore yours (Overvi
 ## Files
 
 `index.html` (page), `style.css`, `app.js` (the plan), `cloud.js` (sync, AI, ATS, shared sign-in). No build step.
+
+## Tests
+
+`node tests/ledger.e2e.mjs` — the page in real Chrome with made-up holdings as ATS sends them (Groww units and buy prices, mutual funds, Bitcoin tracked by hand, INDmoney's ₹0 Crypto class); what broke once must stay fixed.
