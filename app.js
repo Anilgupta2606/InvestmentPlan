@@ -2992,6 +2992,7 @@ function corpusInvested(){
   inv.forEach(a=>{
     if(ex.indexOf(a.asset_type) !== -1) return;
     const r = assetInvestedResolved(a);
+    if(!(Number(a.current_value) > 0) && r.value === null) return;   // a ₹0 class with no cost holds nothing
     if(r.value !== null) total += r.value;      // partial totals still count
     if(r.value === null || r.partial) unknown.push(a.asset_type);
   });
@@ -3012,6 +3013,8 @@ function missingCostRows(){
   inv.forEach(a=>{
     if(detailed[a.asset_type]) return;   // listed holding-by-holding below
     const r = assetInvested(a);
+    // a class INDmoney lists at ₹0 with no cost (Crypto, when your Bitcoin is off-platform) holds nothing to price
+    if(!(Number(a.current_value) > 0) && r.value === null) return;
     rows.push({
       kind:'asset', key:a.asset_type, name:assetLabel(a.asset_type),
       sub: r.source === 'api' ? 'Whole asset class · from your import' : 'Whole asset class',
@@ -3026,6 +3029,13 @@ function missingCostRows(){
       sub: assetLabel(h.__section) + (h.broker && h.broker!=='2' ? ' · '+h.broker : '')
            + (r.source === 'api' ? ' · from your import' : ''),
       current:Number(h.market_value)||0, value:r.value, source:r.source, section: h.__section,
+    });
+  });
+  /* Holdings INDmoney can't see (Bitcoin…): the same figure as in their own table below, editable here too */
+  manualAssets().forEach(m=>{
+    rows.push({
+      kind:'manual', key:m.id, name:m.name || 'Manual holding', sub:'Tracked by hand · not in INDmoney',
+      current:Number(m.current)||0, value:(typeof m.invested === 'number') ? m.invested : null, source:'manual',
     });
   });
   return rows;
@@ -3380,7 +3390,7 @@ function renderLiveBody(){
 
   /* One combined list: INDmoney's asset classes plus anything tracked by hand,
      so the donut, the table and the chips all describe the same portfolio. */
-  const allRows = investments.map(a=>({
+  const allRows = investments.filter(a=>Number(a.current_value) > 0 || assetInvestedResolved(a).value !== null).map(a=>({
     key: a.asset_type,
     label: assetLabel(a.asset_type),
     current: Number(a.current_value) || 0,
@@ -3603,6 +3613,10 @@ function renderLiveBody(){
     inp.addEventListener('input', ()=>{
       const v = inp.value.trim() === '' ? '' : parseFloat(inp.value);
       if(inp.dataset.kind === 'asset') setAssetCost(inp.dataset.key, v);
+      else if(inp.dataset.kind === 'manual'){
+        const m = manualAssets().filter(x=>x.id === inp.dataset.key)[0];
+        if(m){ m.invested = (v === '' || isNaN(v)) ? null : v; markDirty(); }
+      }
       else setHoldingCost(inp.dataset.key, v);
       clearTimeout(inp.__t);
       inp.__t = setTimeout(()=>{
