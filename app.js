@@ -350,6 +350,21 @@ function isDebtFund(f){
   return f.debt === true || /\b(debt|liquid)\b/i.test(String(f.cls||'') + ' ' + String(f.name||''));
 }
 function allFunds(){ return (STATE.indiaFunds||[]).concat(STATE.usFunds||[]); }
+/* THE PLAN'S TARGET MIX, by ATS's asset classes: today's monthly SIPs, split the way ATS sorts holdings (US funds → Equity US,
+   debt / liquid → Debt / cash, gold / silver, bitcoin / crypto, the rest → Equity India). Sent to ATS as "Your target". */
+function planTargets(){
+  const usIds = new Set((STATE.usFunds||[]).map(f=>f.id)), sums = {};
+  for(const f of allFunds()){
+    const m = Number(f.monthly) || 0; if(m <= 0) continue;
+    const t = String(f.cls||'') + ' ' + String(f.name||'');
+    const k = usIds.has(f.id) || f.geo === 'US' ? 'Equity US' : isDebtFund(f) ? 'Debt / cash' : /\b(gold|silver)\b/i.test(t) ? 'Gold / silver'
+      : /\b(bitcoin|btc|crypto)\b/i.test(t) ? 'Crypto' : 'Equity India';
+    sums[k] = (sums[k] || 0) + m;
+  }
+  const tot = Object.values(sums).reduce((a, b)=>a + b, 0); if(!tot) return null;
+  const out = {}; for(const [k, v] of Object.entries(sums)) out[k] = Math.round(v / tot * 1000) / 10;
+  return out;
+}
 function debtSIP(){ return sumFunds(allFunds().filter(isDebtFund)); }
 function equitySIP(){ return totalSIP() - debtSIP(); }
 function indiaEquityFunds(){ return (STATE.indiaFunds||[]).filter(f=>!isDebtFund(f)); }
@@ -3198,6 +3213,9 @@ async function refreshFromAts(quiet){
     STATE.atsReadAt = new Date().toISOString();
     STATE.atsSource = d.source || '';
     STATE.atsUpdatedAt = d.updated_at || null;
+    // the plan's target mix goes back to ATS ("Your target" in its Holdings) — not the example plan
+    const tg = !(STATE.plan && STATE.plan.starter) ? planTargets() : null;
+    if(tg) Cloud.atsTargets(tg).then(()=>{ STATE.atsTargetsAt = new Date().toISOString(); }).catch(()=>{});
     applyImport(got.rows);                 // replaces MF, Indian and US holdings; marks the plan changed
     if(!wasDirty){                          // nothing of yours was unsaved: keep it straight away
       persistSaved(STATE);

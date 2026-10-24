@@ -411,11 +411,19 @@ const Cloud = (function(){
     return d;
   }
   const unlinkAts = () => lsSet(ATS_KEY, undefined);
+  /* the plan's target mix sent to ATS ("Your target" in its Holdings), with the same read-only link: {asset class: %} */
+  async function atsTargets(targets){
+    const l = atsLink(); if(!l) return null;
+    const res = await fetch(l.url.replace(/\/+$/, '') + '/api/ledger/targets', {method:'POST', headers:{Authorization:'Bearer ' + l.token, 'Content-Type':'application/json'}, body: JSON.stringify({targets}), cache:'no-store'});
+    const d = await res.json().catch(()=>({ok:false}));
+    if(!res.ok || !d.ok) throw new Error(d.error || 'ATS did not take the targets (' + res.status + ')');
+    return d.targets;
+  }
 
   const api = {expenseTracker, etRows, investMonths, checkExpenseTrackerLogin, sha256,
           syncConfig, saveSyncConfig, expenseTrackerSync, syncNow, markSaved, forgetSync, otherVersion, dropOtherVersion, seal, unseal,
           PROVIDERS, loadAi, aiSettings, aiLocal, saveAiLocal, aiAvailable, aiNames, resting, wake, chat, listModels, rankModels,
-          atsLink, takeAtsLinkFromUrl, atsLinkUrl, atsHoldings, unlinkAts};
+          atsLink, takeAtsLinkFromUrl, atsLinkUrl, atsHoldings, atsTargets, unlinkAts};
   /* The site's central AI (the AI hub on Money Home, /ai/ai.js) when it is loaded: one set of keys for every app and
      the same choice of service and model (the best first). This file's own copy is used only when it is missing. */
   if(typeof MoneyAI !== 'undefined'){

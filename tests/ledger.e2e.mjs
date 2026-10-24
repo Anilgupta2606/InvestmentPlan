@@ -49,6 +49,13 @@ check('editing Bitcoin\'s purchase value takes', edit === 24500, edit);
 await sl(1300);
 const both = await ev(`[document.querySelector('.cost-input[data-kind=manual]').value, (document.querySelector('tr[data-manid=man-btc] input[data-mf=invested]') || {}).value]`);
 check('… and both tables show it', both[0] === '24500' && both[1] === '24500', both);
+// the plan's target mix for ATS ("Your target"): monthly SIPs by ATS's asset classes
+const tg = await ev(`(()=>{ const keep = [STATE.indiaFunds, STATE.usFunds];
+  STATE.indiaFunds = [{id: 'a', name: 'Nifty 50 index', monthly: 60000, cls: 'Index Fund', geo: 'India'}, {id: 'b', name: 'Liquid fund', monthly: 10000, cls: 'Debt MF', geo: 'India', debt: true},
+    {id: 'c', name: 'Gold ETF', monthly: 10000, cls: 'ETF', geo: 'India'}, {id: 'd', name: 'Paused fund', monthly: 0, cls: 'Index Fund', geo: 'India'}];
+  STATE.usFunds = [{id: 'e', name: 'S&P 500 ETF', monthly: 20000, cls: 'ETF'}];
+  const t = planTargets(); STATE.indiaFunds = keep[0]; STATE.usFunds = keep[1]; return t; })()`);
+check('the plan\'s target mix for ATS, by its asset classes', JSON.stringify(tg) === JSON.stringify({'Equity India': 60, 'Debt / cash': 10, 'Gold / silver': 10, 'Equity US': 20}), tg);
 check('no script errors', !errs.length, errs);
 console.log(`\nLedger: ${pass} passed, ${fail} failed`);
 ws.close(); proc.kill('SIGKILL'); srv.close(); fs.rmSync(dir, {recursive: true, force: true});
