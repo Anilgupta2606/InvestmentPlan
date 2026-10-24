@@ -5403,9 +5403,49 @@ function ledgerContext(){
   };
 }
 
-function askInstructions(){
+/* THE APP GUIDE: for a question about the Ledger itself (where a button is, how to do something) - its sections and
+   pages, and on each page its headings, buttons and their tooltips read from the page as it is now (a page not drawn
+   yet: from its own code), plus the few things that live off-page. A new button is known the day it is added. */
+const ABOUT_APP = /\b(where (is|are|can|do)|how (do|can|to)|which (button|tab|page|screen|menu)|button|tab\b|page\b|screen|menu|click|i can'?t find|cannot find|settings|what does (the|this) .{1,30} (do|mean|show)|in the app|how does (this|the) (app|ledger))\b/i;
+const GUIDE_NOTES = [
+  'Sync between laptop and phone: Profile (the letter, top right) → Settings → Sync (encrypted, a private GitHub Gist).',
+  'Restore a saved plan: Overview → Your data → Restore.',
+  'Holdings come from ATS on the Mac: Holdings → Import portfolio → Link ATS once; then they are read live whenever the page opens on that Mac.',
+  'ATS\'s "Your target" (ATS → Holdings → Opinion → Portfolio table) is filled automatically from this plan\'s target mix each time the Ledger reads your holdings from ATS - there is no button for it, here or in ATS.',
+  'Ask AI is the ✦ Ask AI button in the header; which AI answers, and the keys, are in Money Home → Setup (shared by all your apps).',
+];
+function appGuide(){
+  const clean = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const lines = [];
+  const pick = (root) => {
+    const out = {h: new Set(), b: new Set()};
+    root.querySelectorAll('h2,h3,h4,summary,legend').forEach(e => { const t = clean(e.textContent); if(t && t.length < 70) out.h.add(t); });
+    root.querySelectorAll('button,a.btn,[role=button],label').forEach(e => {
+      const t = clean(e.textContent).slice(0, 50), tip = clean(e.getAttribute('title') || e.getAttribute('aria-label') || '');
+      if(t || tip) out.b.add(t + (tip && tip !== t ? ' (' + tip.slice(0, 90) + ')' : ''));
+    });
+    return out;
+  };
+  const fromSource = fn => { const src = String(fn || ''), out = {h: new Set(), b: new Set()};
+    for(const m of src.matchAll(/<h[234][^>]*>([^<$]{3,60})</g)) out.h.add(clean(m[1]));
+    for(const m of src.matchAll(/<button[^>]*>([^<$]{2,40})</g)) out.b.add(clean(m[1]));
+    return out; };
+  const head = document.querySelector('header, .topbar, #topbar');
+  if(head){ const p = pick(head); lines.push('Header (top of every page): ' + [...p.b].slice(0, 25).join('; ')); }
+  for(const t of TABS){
+    const g = GROUPS.find(x => x.id === t.group) || {label: ''};
+    const panel = document.getElementById('panel-' + t.id);
+    let p = panel && panel.textContent.trim() ? pick(panel) : fromSource(RENDERERS[t.id]);
+    lines.push(`${g.label} › ${t.label}: ` + (p.h.size ? 'sections: ' + [...p.h].slice(0, 14).join('; ') + '. ' : '') + (p.b.size ? 'buttons: ' + [...p.b].slice(0, 22).join('; ') : ''));
+  }
+  return 'The app has five sections in the top strip (a bottom bar on a phone): ' + GROUPS.map(g => g.label).join(', ') + '; a section with several pages shows them as a second row.\n'
+    + lines.join('\n') + '\nAlso: ' + GUIDE_NOTES.join(' ');
+}
+
+function askInstructions(q){
+  const guide = q && ABOUT_APP.test(q) ? `\n\nAPP GUIDE - the question is about using the Ledger itself: answer from this, naming the exact place (section › page → button) as written; if it is not covered, say so rather than guess.\n${appGuide()}` : '';
   return `You are the assistant built into "The 16-Year Ledger", one person's retirement investment plan in Indian rupees (₹1 L = ₹1,00,000; ₹1 Cr = ₹1,00,00,000; write amounts the Indian way).
-Answer using ONLY the plan data below. Do arithmetic carefully and show the key numbers. Be concise: plain text, short paragraphs or "- " bullets, under 180 words unless asked for more, no tables, no markdown headings. You are not a licensed adviser: reason from the plan and its golden rules, never promise returns.
+Answer using ONLY the plan data below (and, for a question about the app itself, the APP GUIDE when one follows). Do arithmetic carefully and show the key numbers. Be concise: plain text, short paragraphs or "- " bullets, under 180 words unless asked for more, no tables, no markdown headings. You are not a licensed adviser: reason from the plan and its golden rules, never promise returns.
 
 If, and only if, the user asks you to change the plan, say in one sentence what you propose, then end your reply with one final line that starts with CHANGES: followed by a JSON array of operations (no code fence). The user reviews and applies them. Allowed operations:
 {"op":"set_fund_monthly","fundId":"<id from funds>","monthly":<rupees>}
@@ -5418,7 +5458,7 @@ If, and only if, the user asks you to change the plan, say in one sentence what 
 Use only ids that appear in the data. For a relative change ("raise PPFCF by 20%") compute the new absolute amount.
 
 PLAN DATA:
-${JSON.stringify(ledgerContext())}`;
+${JSON.stringify(ledgerContext())}${guide}`;
 }
 
 /* Splits Claude's reply into what to show and the proposed operations. */
@@ -5663,14 +5703,14 @@ async function askSend(q){
   ASK.busy = ctl;
   setAskBusy(true);
   try{
-    const res = await Cloud.chat(askInstructions(), history, ctl.signal);
+    const res = await Cloud.chat(askInstructions(q), history, ctl.signal);
     const parts = splitReply(res.text);
     reply.raw = res.text;
     reply.shown = parts.shown || 'Here is what I propose:';
     reply.via = 'Answered by ' + res.provider + ' · ' + res.model;
     // figures the AI worked out itself (not read from the plan) are named, so a sum is never mistaken for a fact
     if(typeof MoneyAsk !== 'undefined'){
-      const own = MoneyAsk.checkFigures(reply.shown, askInstructions());
+      const own = MoneyAsk.checkFigures(reply.shown, askInstructions(q));
       if(own.length) reply.via += ' · worked out by the AI, not in your plan: ' + own.slice(0, 4).join(', ') + ' — the Overview shows the plan’s own projection';
     }
     if(parts.ops) reply.changes = vetOps(parts.ops);
