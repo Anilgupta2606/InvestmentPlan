@@ -1360,7 +1360,7 @@ function summitHTML(){
       </div>
     </div>
     <div class="sm-stage" id="sm-stage"><canvas aria-hidden="true"></canvas><div class="sm-tags" aria-hidden="true"></div><div class="sm-read" aria-live="polite"></div>
-      <div class="sm-legend"><span><i class="lo"></i>Front edge: 1 in 10 do worse</span><span><i class="mid"></i>Crest: the likely path</span><span><i class="hi"></i>Back edge: 1 in 10 do better</span><span><i class="tg"></i>Gold cloud: your target</span></div></div>
+      <div class="sm-legend"><span><i class="lo"></i>Front edge: 1 in 10 do worse</span><span><i class="mid"></i>Crest: the likely path</span><span><i class="hi"></i>Back edge: 1 in 10 do better</span><span><i class="tg"></i>Violet cloud: your target</span></div></div>
     <div class="sm-scrub"><button class="sm-play" type="button" aria-label="Play or pause the climb">❚❚ Pause</button>
       <input type="range" class="sm-slider" aria-label="Age to look at"><span class="sm-scrub-l">Drag through the years</span></div>
   </div>`;

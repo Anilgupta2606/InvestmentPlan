@@ -1,7 +1,7 @@
 /* The Summit: the Overview's hero in the new design. Your sixteen years as a terrain — age runs left to
    right, the corpus is the height. The front edge is a bad run of markets (1 in 10 do worse), the back edge a
-   good one (1 in 10 do better), and the gold path along the crest is the likely way up, all from the plan's
-   own 2,000-run simulation. The target is a layer of gold cloud; the flag is retirement. A marker climbs from
+   good one (1 in 10 do better), and the bright path along the crest is the likely way up, all from the plan's
+   own 2,000-run simulation. The target is a layer of violet cloud; the flag is retirement. Stars and an aurora fill the sky. A marker climbs from
    today to retirement when the page opens; the age slider takes it anywhere in between.
    Loaded only in the new design (index.html); app.js hands it the numbers. */
 import * as THREE from 'three';
@@ -23,8 +23,8 @@ function mount(box, d){
   const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
   const world = new THREE.Group();
   scene.add(world);
-  scene.add(new THREE.AmbientLight(0x3a5a52, 1.6));
-  const sun = new THREE.DirectionalLight(0xffe2a8, 2.2); sun.position.set(-6, 10, 8); scene.add(sun);
+  scene.add(new THREE.AmbientLight(0x2a2f6a, 1.8));
+  const sun = new THREE.DirectionalLight(0xc7d2ff, 2.2); sun.position.set(-6, 10, 8); scene.add(sun);
 
   /* ---- the numbers, in scene units */
   const ages = [d.start.age].concat(d.ages);
@@ -48,7 +48,7 @@ function mount(box, d){
     return Y(at(across[i], a) * (1 - t) + at(across[i + 1], a) * t);
   };
 
-  /* ---- the terrain: height-shaded, gold above the target, with contour lines that glow */
+  /* ---- the terrain: height-shaded, aurora violet above the target, with contour lines that glow */
   const SX = small ? 70 : 110, SZ = 40;
   const geo = new THREE.PlaneGeometry(W, DEPTH, SX, SZ);
   geo.rotateX(-Math.PI / 2);
@@ -68,33 +68,57 @@ function mount(box, d){
         float edge = (vP.x / uW + 0.5);
         if(edge > uReveal + 0.002) discard;                                   // drawn left to right on opening
         float h = vP.y / max(uLow, 0.001);
-        vec3 deep = vec3(.05, .22, .18), mid = vec3(.16, .60, .49);
+        vec3 deep = vec3(.07, .08, .26), mid = vec3(.22, .45, .86);
         vec3 c = mix(deep, mid, clamp(h, 0.0, 1.0));
-        c = mix(c, vec3(.78, .60, .24), smoothstep(.96, 1.04, h));             // above the target: gold
+        c = mix(c, vec3(.66, .42, .95), smoothstep(.96, 1.04, h));             // above the target: aurora violet
         float light = .55 + .45 * max(dot(vN, normalize(vec3(-.4, .9, .5))), 0.0);
         c *= light;
         float k = fract(vP.y * 2.2 - uT * .15);                                // contour lines, drifting upward
         float line = smoothstep(.42, .5, abs(k - .5));                         // 1 on a thin line, 0 between lines
-        c += line * mix(vec3(.45, 1.0, .85), vec3(1.0, .92, .65), step(1.0, h)) * .55;
+        c += line * mix(vec3(.37, .91, 1.0), vec3(1.0, .82, 1.0), step(1.0, h)) * .6;
         float rim = smoothstep(uReveal - .02, uReveal, edge) * (1.0 - step(.999, uReveal));
-        c += vec3(1.0, .8, .4) * rim * 1.5;                                   // a bright seam where it is being drawn
+        c += vec3(.37, .91, 1.0) * rim * 1.5;                                   // a bright seam where it is being drawn
         gl_FragColor = vec4(c, .93);
       }`,
   });
   const terrain = new THREE.Mesh(geo, terrainMat);
   world.add(terrain);
   const wire = new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.PlaneGeometry(W, DEPTH, Math.round(SX / 5), 8).rotateX(-Math.PI / 2)),
-    new THREE.LineBasicMaterial({color: 0x9fe8d6, transparent: true, opacity: 0.0, depthWrite: false}));
+    new THREE.LineBasicMaterial({color: 0x9fb4ff, transparent: true, opacity: 0.0, depthWrite: false}));
   { const wp = wire.geometry.attributes.position;
     for(let i = 0; i < wp.count; i++){ const x = wp.getX(i), z = wp.getZ(i), a = a0 + (x / W + 0.5) * (a1 - a0); wp.setY(i, heightAt(a, z) + 0.01); } }
   world.add(wire);
 
   /* ---- the floor, and an age every few years */
-  const floor = new THREE.GridHelper(W * 1.3, 26, 0x2f6b5c, 0x1a3d35);
+  const floor = new THREE.GridHelper(W * 1.3, 26, 0x3b3f9e, 0x1c1f4a);
   floor.material.transparent = true; floor.material.opacity = 0.35;
   world.add(floor);
 
-  /* ---- the target: a layer of gold cloud between the low and the high target */
+  /* ---- the sky: stars that twinkle, and an aurora rippling behind the terrain */
+  const STARS = small ? 220 : 420, sp = new Float32Array(STARS * 3), sph = new Float32Array(STARS);
+  for(let i = 0; i < STARS; i++){ sp.set([(Math.random() - .5) * 60, 1 + Math.random() * 18, -10 - Math.random() * 18], i * 3); sph[i] = Math.random() * 6.28; }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('aPh', new THREE.BufferAttribute(sph, 1));
+  const starMat = new THREE.ShaderMaterial({transparent: true, depthWrite: false, uniforms: {uT: {value: 0}, uPR: {value: R.getPixelRatio()}},
+    vertexShader: 'attribute float aPh; uniform float uT; uniform float uPR; varying float vA; void main(){ vA = .35 + .65 * (.5 + .5 * sin(uT * 1.6 + aPh * 3.0)); vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = (1.2 + 1.6 * fract(aPh)) * uPR * 18.0 / -mv.z; }',
+    fragmentShader: 'varying float vA; void main(){ float d = length(gl_PointCoord - .5); float a = smoothstep(.5, 0.0, d); gl_FragColor = vec4(vec3(.85, .9, 1.0), a * vA); }'});
+  const stars = new THREE.Points(sg, starMat); stars.frustumCulled = false; scene.add(stars);
+  const auroraMat = new THREE.ShaderMaterial({transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: {uT: {value: 0}, uO: {value: 0}},
+    vertexShader: 'varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float uT; uniform float uO; varying vec2 vU;
+      void main(){
+        float x = vU.x * 6.2832;
+        float ridge = .55 + .14 * sin(x * 1.3 + uT * .25) + .08 * sin(x * 3.1 - uT * .4) + .04 * sin(x * 7.0 + uT * .9);
+        float band = smoothstep(ridge - .32, ridge, vU.y) * (1.0 - smoothstep(ridge, ridge + .06, vU.y));      // a curtain that hangs down from the ridge
+        float rays = .65 + .35 * sin(vU.x * 90.0 + sin(uT * .5 + vU.x * 8.0) * 3.0);                         // fine vertical rays
+        vec3 col = mix(vec3(.25, 1.0, .75), vec3(.37, .91, 1.0), smoothstep(.0, .5, vU.x));
+        col = mix(col, vec3(.70, .52, 1.0), smoothstep(.45, 1.0, vU.x));
+        col = mix(col, vec3(1.0, .55, .85), smoothstep(ridge - .05, ridge + .04, vU.y) * .6);
+        float a = band * rays * (.55 + .45 * sin(x * .7 + uT * .3)) * uO * .55;
+        gl_FragColor = vec4(col, a); }`});
+  const aurora = new THREE.Mesh(new THREE.PlaneGeometry(56, 16), auroraMat);
+  aurora.position.set(0, 9, -16); scene.add(aurora);
+
+  /* ---- the target: a layer of violet cloud between the low and the high target */
   const yLo = Y(d.targetLow), yHi = Y(d.targetHigh);
   const cloudMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: {uT: {value: 0}, uO: {value: 0}},
@@ -102,12 +126,12 @@ function mount(box, d){
     fragmentShader: `uniform float uT; uniform float uO; varying vec2 vU;
       void main(){ float n = sin(vU.x * 18.0 + uT * .6) * sin(vU.y * 11.0 - uT * .4) * .5 + .5;
         float edge = smoothstep(0.0, .12, vU.x) * smoothstep(1.0, .88, vU.x) * smoothstep(0.0, .15, vU.y) * smoothstep(1.0, .85, vU.y);
-        gl_FragColor = vec4(vec3(1.0, .80, .40), (.12 + .10 * n) * edge * uO); }`,   // soft gold, see-through: the page shows behind it
+        gl_FragColor = vec4(vec3(.78, .66, 1.0), (.12 + .10 * n) * edge * uO); }`,   // soft lavender, see-through: the page shows behind it
   });
   const cloudGroup = new THREE.Group();
   [yLo, (yLo + yHi) / 2, yHi].forEach((y, i) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.08, DEPTH * 1.15), cloudMat); m.rotation.x = -Math.PI / 2; m.position.y = y; cloudGroup.add(m);
-    if(i !== 1){ const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(W * 1.08, DEPTH * 1.15)), new THREE.LineDashedMaterial({color: 0xe2b04a, dashSize: .25, gapSize: .18, transparent: true, opacity: 0}));
+    if(i !== 1){ const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(W * 1.08, DEPTH * 1.15)), new THREE.LineDashedMaterial({color: 0xc4b5fd, dashSize: .25, gapSize: .18, transparent: true, opacity: 0}));
       e.computeLineDistances(); e.rotation.x = -Math.PI / 2; e.position.y = y; cloudGroup.add(e); }
   });
   world.add(cloudGroup);
@@ -116,7 +140,7 @@ function mount(box, d){
   const pts = []; for(let i = 0; i <= 160; i++){ const a = a0 + (a1 - a0) * i / 160; pts.push(new THREE.Vector3(X(a), Y(at(p50, a)) + 0.06, 0)); }
   const curve = new THREE.CatmullRomCurve3(pts);
   const tubeGeo = new THREE.TubeGeometry(curve, 220, 0.045, 8, false);
-  const tubeMat = new THREE.MeshBasicMaterial({color: 0xffd98a});
+  const tubeMat = new THREE.MeshBasicMaterial({color: 0xbff4ff});
   const tube = new THREE.Mesh(tubeGeo, tubeMat);
   tube.geometry.setDrawRange(0, 0);
   world.add(tube);
@@ -130,9 +154,9 @@ function mount(box, d){
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, 1.3, 8), new THREE.MeshStandardMaterial({color: 0xf3f1e8, metalness: .4, roughness: .3}));
   pole.position.y = .65; flag.add(pole);
   const flagShape = new THREE.Shape(); flagShape.moveTo(0, 0); flagShape.lineTo(.62, -.2); flagShape.lineTo(0, -.4);
-  const cloth = new THREE.Mesh(new THREE.ShapeGeometry(flagShape), new THREE.MeshBasicMaterial({color: 0xe2b04a, side: THREE.DoubleSide}));
+  const cloth = new THREE.Mesh(new THREE.ShapeGeometry(flagShape), new THREE.MeshBasicMaterial({color: 0xc4b5fd, side: THREE.DoubleSide}));
   cloth.position.y = 1.3; flag.add(cloth);
-  const flagGlow = glow(0xe2b04a, 2.2, .7); flagGlow.position.y = 1.1; flag.add(flagGlow);
+  const flagGlow = glow(0xa78bfa, 2.4, .8); flagGlow.position.y = 1.1; flag.add(flagGlow);
   flag.position.set(X(a1), top, 0); flag.scale.setScalar(0.001);
   world.add(flag);
 
@@ -140,13 +164,13 @@ function mount(box, d){
   const you = new THREE.Group();
   const orb = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), new THREE.MeshBasicMaterial({color: 0xffffff}));
   you.add(orb);
-  const halo = glow(0xffd98a, 1.5, .9); you.add(halo);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 1, 6), new THREE.MeshBasicMaterial({color: 0xffd98a, transparent: true, opacity: .45}));
+  const halo = glow(0x5ee7ff, 1.5, .9); you.add(halo);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, 1, 6), new THREE.MeshBasicMaterial({color: 0x5ee7ff, transparent: true, opacity: .45}));
   world.add(beam);
   world.add(you);
   const COINS = small ? 40 : 70, cp = new Float32Array(COINS * 3), cph = Array.from({length: COINS}, () => Math.random());
   const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.BufferAttribute(cp, 3));
-  const coins = new THREE.Points(cg, new THREE.PointsMaterial({color: 0xffd98a, size: .09, map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending}));
+  const coins = new THREE.Points(cg, new THREE.PointsMaterial({color: 0x9ff0ff, size: .09, map: glowTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending}));
   coins.frustumCulled = false;
   world.add(coins);
 
@@ -202,7 +226,8 @@ function mount(box, d){
     terrainMat.uniforms.uReveal.value = ease(reveal);
     terrainMat.uniforms.uT.value = t;
     wire.material.opacity = .06 * reveal;
-    cloudMat.uniforms.uT.value = t; cloudMat.uniforms.uO.value = calm ? 1 : Math.min(1, Math.max(0, (ti - .8) / 1.2));
+    cloudMat.uniforms.uT.value = t;
+    starMat.uniforms.uT.value = t; auroraMat.uniforms.uT.value = t; auroraMat.uniforms.uO.value = calm ? 1 : Math.min(1, ti / 2.5); cloudMat.uniforms.uO.value = calm ? 1 : Math.min(1, Math.max(0, (ti - .8) / 1.2));
     cloudGroup.children.forEach(c => { if(c.material.opacity !== undefined && c.isLineSegments) c.material.opacity = .55 * cloudMat.uniforms.uO.value; });
     if(playing){
       const k = Math.min(1, Math.max(0, (performance.now() - t0) / LAPSE));
