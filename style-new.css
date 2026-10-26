@@ -102,7 +102,7 @@
 
 /* ---------- the Overview: the Summit takes the place of the headline cards and the road ---------- */
 :root[data-look='new'] .sm-hero {
-  display: block; margin: 18px 0 22px; border-radius: 28px; overflow: hidden; color: var(--sm-ink); position: relative;
+  display: block; margin: 18px 0 22px; border-radius: 28px; overflow: clip; color: var(--sm-ink); position: relative;
   background:
     radial-gradient(700px 300px at 80% 0%, rgb(var(--sm-glow-rgb) / .16), transparent 60%),
     radial-gradient(600px 400px at 10% 100%, rgb(var(--sm-glow2-rgb) / .16), transparent 60%),

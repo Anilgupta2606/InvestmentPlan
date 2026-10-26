@@ -1398,7 +1398,10 @@ function refreshSummit(next){
   };
   document.querySelectorAll('#panel-overview .phase-chip[data-phase-lo]').forEach(ch=>{ ch.onclick = ()=>{
     if(window.LedgerSummit && window.LedgerSummit.setAge) window.LedgerSummit.setAge(Number(ch.dataset.phaseLo) + 0.01);
-    box.scrollIntoView({behavior: 'smooth', block: 'center'});
+    // scroll the page only: scrollIntoView would also scroll the Summit card itself (it clips its corners), shifting its contents
+    const hero = box.closest('.sm-hero') || box;
+    hero.scrollTop = 0;
+    window.scrollTo({top: window.scrollY + hero.getBoundingClientRect().top - 16, behavior: 'smooth'});
   }; });
   if(window.LedgerSummit) window.LedgerSummit.mount(box, data);
   else { window.__summitPending = {box, data}; loadSummitScript(); }
