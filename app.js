@@ -677,6 +677,7 @@ function buildShell(){
     tabsEl.appendChild(b);
   });
   syncNav(TABS[0].id);
+  renderLookChip();
   const main = document.getElementById('main');
   TABS.forEach((t,i)=>{
     const sec = document.createElement('section');
@@ -1318,7 +1319,23 @@ function setLedgerLook(l){
   try{ localStorage.setItem(LOOK_KEY, l); }catch(e){}
   document.documentElement.setAttribute('data-look', l);
   if(l === 'new') loadSummitScript();
+  renderLookChip();
   rerenderAll();
+}
+/* the switch in the header, next to Money Home (also in Profile -> Design) */
+function renderLookChip(){
+  const bar = document.querySelector('.top-actions');
+  if(!bar) return;
+  let b = document.getElementById('look-chip');
+  if(!b){
+    b = document.createElement('button');
+    b.id = 'look-chip'; b.type = 'button'; b.className = 'home-chip look-chip';
+    b.addEventListener('click', ()=>setLedgerLook(ledgerLook() === 'new' ? 'classic' : 'new'));
+    bar.insertBefore(b, bar.querySelector('.home-chip').nextSibling);
+  }
+  const isNew = ledgerLook() === 'new';
+  b.innerHTML = `<span aria-hidden="true">${isNew ? '◐' : '✦'}</span><span class="t">${isNew ? 'Classic view' : 'New design'}</span>`;
+  b.title = isNew ? 'Switch to the classic design' : 'Switch to the new design';
 }
 function loadSummitScript(){
   if(document.getElementById('summit-js')) return;

@@ -3,6 +3,8 @@
    the classic design is style.css alone. */
 
 .sm-hero { display: none; }
+/* the design switch in the header, in both designs (it borrows the Money Home chip's shape) */
+.look-chip { background: none; cursor: pointer; font-family: inherit; }
 
 :root[data-look='new'] {
   --bg: #f3f1ea; --surface: #ffffff; --surface-2: #f7f5ef; --surface-3: #ece8de; --border: #e7e2d7; --border-strong: #d8d1c2;
@@ -70,8 +72,12 @@
 :root[data-look='new'] .group-btn { background: rgb(255 255 255 / .06); border-color: rgb(255 255 255 / .1); color: var(--sm-mut); }
 :root[data-look='new'] .group-btn:hover { background: rgb(255 255 255 / .1); color: var(--sm-ink); }
 :root[data-look='new'] .group-btn.on { background: linear-gradient(135deg, var(--sm-gold-2), var(--sm-gold)); border-color: transparent; color: #1a1405; }
-:root[data-look='new'] .tab-btn { color: var(--sm-mut); }
-:root[data-look='new'] .tab-btn[aria-selected='true'] { color: #fff; border-bottom-color: var(--sm-gold); }
+:root[data-look='new'] .tabs { background: transparent; border-bottom: 0; padding: 6px 0 4px; gap: 6px; }
+:root[data-look='new'] .tab-btn { border-radius: 999px; border: 1px solid rgb(255 255 255 / .1); padding: 6px 13px; color: var(--sm-mut); background: transparent; }
+:root[data-look='new'] .tab-btn:hover { background: rgb(255 255 255 / .08); color: #fff; }
+:root[data-look='new'] .tab-btn[aria-selected='true'] { background: rgb(226 176 74 / .16); color: var(--sm-gold-2); border-color: rgb(226 176 74 / .55); }
+:root[data-look='new'] .tab-btn .idx, :root[data-look='new'] .tab-btn[aria-selected='true'] .idx { color: inherit; opacity: .7; }
+:root[data-look='new'] .look-chip { border-style: dashed; }
 @media (max-width: 700px) {
   :root[data-look='new'] .topbar { margin: 0 -20px; }
   :root[data-look='new'] .groups { left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); border-radius: 22px; border: 0;
