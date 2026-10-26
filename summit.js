@@ -289,11 +289,14 @@ function mount(box, d){
 
   const api = {
     rebind,
+    setAge: a => setAge(a, true),
     dispose(){ alive = false; io.disconnect(); removeEventListener('resize', resize); R.dispose(); geo.dispose(); tubeGeo.dispose(); live = null; },
   };
   live = {sig, canvas, api};
   return api;
 }
 
-window.LedgerSummit = {mount};
+/* the marker to an age, from outside (the phase strip under the Summit) */
+function setAge(a){ if(live) live.api.setAge(a); }
+window.LedgerSummit = {mount, setAge};
 if(window.__summitPending){ const p = window.__summitPending; window.__summitPending = null; mount(p.box, p.data); }

@@ -110,8 +110,20 @@
   box-shadow: 0 30px 60px -36px rgb(0 0 0 / .6);
 }
 :root[data-look='new'] #panel-overview > .kpi-grid,
-:root[data-look='new'] #panel-overview > .hero-card,
 :root[data-look='new'] #panel-overview > .panel-head > div:first-child { display: none; }
+/* the road to retirement, under the Summit: the same journey as a line, and its phases - a tap shows one on the Summit */
+:root[data-look='new'] #panel-overview > .hero-card { margin-top: 4px; }
+:root[data-look='new'] .timeline-track { height: 12px; border-radius: 8px; background: var(--surface-3); }
+:root[data-look='new'] .timeline-fill { background: linear-gradient(90deg, #3b3f9e, var(--accent), #22d3ee); border-radius: 8px; box-shadow: 0 0 14px rgb(var(--sm-glow-rgb) / .45); }
+:root[data-look='new'] .timeline-now .pin { background: #22d3ee; box-shadow: 0 0 0 4px rgb(var(--sm-glow-rgb) / .25), 0 0 14px rgb(var(--sm-glow-rgb) / .8); }
+:root[data-look='new'] .timeline-now .tag { background: var(--sm-night-2); color: var(--sm-gold); border: 1px solid rgb(var(--sm-glow-rgb) / .4); border-radius: 8px; }
+:root[data-look='new'] .phase-strip { gap: 6px; border: 0; border-radius: 0; overflow: visible; }
+:root[data-look='new'] .phase-chip { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); cursor: pointer; transition: transform .15s, border-color .15s, background .15s; }
+:root[data-look='new'] .phase-chip:last-child { border-right: 1px solid var(--border); }
+:root[data-look='new'] .phase-chip:hover { transform: translateY(-2px); border-color: var(--accent); }
+:root[data-look='new'] .phase-chip.current { background: linear-gradient(160deg, var(--sm-night-2), var(--sm-night)); color: var(--sm-ink); border-color: transparent; box-shadow: 0 10px 24px -12px rgb(28 31 92 / .7); }
+:root[data-look='new'] .phase-chip.current b { color: var(--sm-gold); }
+@media (max-width: 640px) { :root[data-look='new'] .phase-strip { flex-wrap: wrap; } :root[data-look='new'] .phase-chip { flex: 1 1 30%; } }
 :root[data-look='new'] #panel-overview > .panel-head { justify-content: flex-end; margin-bottom: 8px; min-height: 0; }
 .sm-head { padding: 24px 26px 0; position: relative; z-index: 2; }
 .sm-kick { font: 600 11px var(--font-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--sm-gold); }

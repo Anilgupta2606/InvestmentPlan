@@ -951,7 +951,7 @@ function renderOverview(){
         <div class="timeline-ticks"><span>${baselineAge.toFixed(0)}</span><span>${(baselineAge + (retireAge-baselineAge)*0.33).toFixed(0)}</span><span>${(baselineAge + (retireAge-baselineAge)*0.66).toFixed(0)}</span><span>${retireAge} — retire</span></div>
       </div>
       <div class="phase-strip">
-        ${phaseRanges.map(p=>`<div class="phase-chip ${currentAge>=p.lo && currentAge<p.hi ? 'current':''}"><b>${p.label}</b>${p.name}</div>`).join('')}
+        ${phaseRanges.map(p=>`<div class="phase-chip ${currentAge>=p.lo && currentAge<p.hi ? 'current':''}" data-phase-lo="${p.lo}" title="Show this phase on the Summit"><b>${p.label}</b>${p.name}</div>`).join('')}
       </div>
     </div>
 
@@ -1396,6 +1396,10 @@ function refreshSummit(next){
     readout: (a, mid, lo, hi) => `<span class="k">${a >= retire ? 'At retirement · ' + (thisYear + Math.round(retire - nowAge)) : 'Age ' + Math.floor(a) + ' · ' + (thisYear + Math.round(a - nowAge)) + ' · ' + phaseAt(a)}</span>
       <b>${fmtCompact(mid)}</b><span class="r">${fmtCompact(lo)} – ${fmtCompact(hi)}</span>`,
   };
+  document.querySelectorAll('#panel-overview .phase-chip[data-phase-lo]').forEach(ch=>{ ch.onclick = ()=>{
+    if(window.LedgerSummit && window.LedgerSummit.setAge) window.LedgerSummit.setAge(Number(ch.dataset.phaseLo) + 0.01);
+    box.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }; });
   if(window.LedgerSummit) window.LedgerSummit.mount(box, data);
   else { window.__summitPending = {box, data}; loadSummitScript(); }
 }
