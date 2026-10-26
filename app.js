@@ -560,6 +560,8 @@ function simulateTarget(o){
       while(ai < ages.length && age >= ages[ai] - 1e-9){ grid[ai][r] = E + D + F + o.flat; ai++; }
     }
     finals[r] = E + D + F + o.flat;
+    // the last age can fall a few days after the last month (a birthday mid-month): it takes the final value
+    while(ai < ages.length){ grid[ai][r] = finals[r]; ai++; }
   }
   const q = (arr, p) => arr[Math.min(arr.length - 1, Math.max(0, Math.floor(p * (arr.length - 1))))];
   const band = grid.map((arr, i) => { const s = Float64Array.from(arr).sort(); return {age: ages[i], p10: q(s, .1), p25: q(s, .25), p50: q(s, .5), p75: q(s, .75), p90: q(s, .9)}; });
@@ -906,7 +908,7 @@ function renderOverview(){
 
   const snap = latestSnapshot();
 
-  el.innerHTML = `
+  el.innerHTML = (ledgerLook() === 'new' ? summitHTML() : '') + `
     <div class="panel-head">
       <div>
         <h2>Where the plan stands</h2>
@@ -1303,6 +1305,80 @@ function refreshHeadline(){
   const next = STATE.calendar.filter(c=>!c.done).sort((a,b)=>(a.age-b.age)||(a.year-b.year))[0];
   set('kpi-next', next ? next.action : 'All actions done');
   set('kpi-next-sub', next ? 'Age ' + next.age + ' · ' + next.year + (next.fund ? ' · ' + next.fund : '') : '');
+  refreshSummit(next);
+}
+
+/* =========================================================
+   THE NEW DESIGN — the Money Home family, and the Summit: the plan's sixteen years as a 3D terrain
+   (summit.js), drawn from the same simulation as the chance of the target. Classic is the page as it was.
+   ========================================================= */
+const LOOK_KEY = 'ledger-look';
+function ledgerLook(){ try{ return localStorage.getItem(LOOK_KEY) === 'classic' ? 'classic' : 'new'; }catch(e){ return 'new'; } }
+function setLedgerLook(l){
+  try{ localStorage.setItem(LOOK_KEY, l); }catch(e){}
+  document.documentElement.setAttribute('data-look', l);
+  if(l === 'new') loadSummitScript();
+  rerenderAll();
+}
+function loadSummitScript(){
+  if(document.getElementById('summit-js')) return;
+  const s = document.createElement('script');
+  s.type = 'module'; s.id = 'summit-js'; s.src = 'summit.js';
+  document.head.appendChild(s);
+}
+const phaseAt = a => a >= STATE.retireAge ? 'Retired' : a < 40 ? 'Full throttle' : a < 43 ? 'Growth + aware' : a < 46 ? 'De-risking' : 'Preservation';
+function summitHTML(){
+  return `<div class="sm-hero">
+    <div class="sm-head">
+      <div class="sm-kick" id="sm-kick">Your climb</div>
+      <div class="sm-title"><span class="sm-chance" id="sm-chance">—</span><span id="sm-chance-t">chance of the target</span></div>
+      <p class="sm-sub" id="sm-sub"></p>
+      <div class="sm-kpis">
+        <div><span class="l">Corpus today</span><b class="num" id="sm-corpus">—</b></div>
+        <div><span class="l">Monthly SIP</span><b class="num" id="sm-sip">—</b></div>
+        <div><span class="l" id="sm-likely-l">Likely at retirement</span><b class="num" id="sm-likely">—</b></div>
+        <button class="sm-next" id="sm-next" title="Open the action calendar"><span class="l">Next action</span><b id="sm-next-t">—</b></button>
+      </div>
+    </div>
+    <div class="sm-stage" id="sm-stage"><canvas aria-hidden="true"></canvas><div class="sm-tags" aria-hidden="true"></div><div class="sm-read" aria-live="polite"></div>
+      <div class="sm-legend"><span><i class="lo"></i>Front edge: 1 in 10 do worse</span><span><i class="mid"></i>Crest: the likely path</span><span><i class="hi"></i>Back edge: 1 in 10 do better</span><span><i class="tg"></i>Gold cloud: your target</span></div></div>
+    <div class="sm-scrub"><button class="sm-play" type="button" aria-label="Play the climb again">▶ Replay</button>
+      <input type="range" class="sm-slider" aria-label="Age to look at"><span class="sm-scrub-l">Drag through the years</span></div>
+  </div>`;
+}
+function refreshSummit(next){
+  const box = document.getElementById('sm-stage');
+  if(!box || ledgerLook() !== 'new') return;
+  const set = (id, v)=>{ const e = document.getElementById(id); if(e) e.textContent = v; };
+  let c;
+  try{ c = chanceFor(chanceInputs(), 2000); }catch(e){ box.classList.add('no3d'); return; }
+  const inp = chanceInputs(), startValue = inp.equity + inp.debt + inp.fd + inp.flat;
+  const band = c.band;
+  const end = band[band.length - 1] || {p10: startValue, p50: startValue, p90: startValue};
+  const lowCr = STATE.targetLowCr, retire = STATE.retireAge;
+  set('sm-kick', 'Your climb · age ' + Math.floor(inp.startAge) + ' → ' + retire);
+  set('sm-chance', pctTxt(c.low));
+  const ct = document.getElementById('sm-chance-t');
+  if(ct) ct.innerHTML = `chance of reaching <b>₹${lowCr} Cr</b> by ${retire}`;
+  set('sm-sub', `Likely ${fmtCompact(end.p50)} at ${retire} — between ${fmtCompact(end.p10)} and ${fmtCompact(end.p90)} in 8 of 10 market runs. Drag the slider to see any year.`);
+  const snap = latestSnapshot();
+  set('sm-corpus', snap ? fmtCompact(snap.value) : '—');
+  set('sm-sip', fmtINR(totalSIP()));
+  set('sm-likely-l', 'Likely at ' + retire);
+  set('sm-likely', fmtCompact(end.p50));
+  set('sm-next-t', next ? next.action + ' · ' + next.year : 'All actions done');
+  const nb = document.getElementById('sm-next'); if(nb) nb.onclick = ()=>selectTab('calendar');
+  const thisYear = new Date().getFullYear(), nowAge = inp.startAge;
+  const data = {
+    start: {age: inp.startAge, value: startValue}, retireAge: retire,
+    ages: band.map(b=>b.age), p10: band.map(b=>b.p10), p25: band.map(b=>b.p25), p50: band.map(b=>b.p50), p75: band.map(b=>b.p75), p90: band.map(b=>b.p90),
+    targetLow: STATE.targetLowCr * 1e7, targetHigh: STATE.targetHighCr * 1e7,
+    // the simulation's last point is the end of the retirement-age year: that is "at retirement"
+    readout: (a, mid, lo, hi) => `<span class="k">${a >= retire ? 'At retirement · ' + (thisYear + Math.round(retire - nowAge)) : 'Age ' + Math.floor(a) + ' · ' + (thisYear + Math.round(a - nowAge)) + ' · ' + phaseAt(a)}</span>
+      <b>${fmtCompact(mid)}</b><span class="r">${fmtCompact(lo)} – ${fmtCompact(hi)}</span>`,
+  };
+  if(window.LedgerSummit) window.LedgerSummit.mount(box, data);
+  else { window.__summitPending = {box, data}; loadSummitScript(); }
 }
 
 /* Refreshes everything on the Overview panel that depends on STATE
@@ -5867,6 +5943,10 @@ function toggleProfileMenu(){
         <span><span class="pm-label" style="padding:0;">Signed in as</span><b style="display:block;">${escAttr(ledgerUser())}</b></span></div>
       <button class="pm-item" role="menuitem" data-pm="settings">Settings — sync, AI, ATS</button>
       <button class="pm-item" role="menuitem" data-pm="password">Change username or password</button>
+      <div class="pm-label">Design</div>
+      <div class="pm-theme" role="group" aria-label="Design">
+        ${['new','classic'].map(l=>`<button data-look-pick="${l}" aria-pressed="${ledgerLook()===l}" class="${ledgerLook()===l?'on':''}">${l === 'new' ? 'New' : 'Classic'}</button>`).join('')}
+      </div>
       <div class="pm-label">Theme</div>
       <div class="pm-theme" role="group" aria-label="Theme">
         ${['system','light','dark'].map(t=>`<button data-theme-pick="${t}" aria-pressed="${theme===t}" class="${theme===t?'on':''}">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}
@@ -5876,6 +5956,7 @@ function toggleProfileMenu(){
       <a class="pm-item" role="menuitem" href="ats://open" target="_blank" rel="noopener" title="Opens the trading dashboard on this Mac - starts it first if it is not running">Open ATS <span class="pm-ext" aria-hidden="true">↗</span><span class="sr-only"> (the trading dashboard on this Mac)</span></a>
       <button class="pm-item danger" role="menuitem" data-pm="signout">Sign out</button>`;
     menu.querySelectorAll('[data-theme-pick]').forEach(b=>b.addEventListener('click', ()=>{ setLedgerTheme(b.dataset.themePick); draw(); }));
+    menu.querySelectorAll('[data-look-pick]').forEach(b=>b.addEventListener('click', ()=>{ setLedgerLook(b.dataset.lookPick); draw(); }));
     menu.querySelector('[data-pm="password"]').addEventListener('click', ()=>{ closeProfileMenu(); openPasswordModal(); });
     menu.querySelector('[data-pm="settings"]').addEventListener('click', ()=>{ closeProfileMenu(); openSettings(); });
     menu.querySelector('[data-pm="signout"]').addEventListener('click', signOut);
