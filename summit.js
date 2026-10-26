@@ -155,7 +155,7 @@ function mount(box, d){
   const tagAges = []; { const step = (a1 - a0) > 14 ? 4 : (a1 - a0) > 7 ? 2 : 1; for(let a = Math.ceil(a0); a <= Math.floor(a1); a += step) tagAges.push(a); if(tagAges[tagAges.length - 1] !== Math.round(a1)) tagAges.push(Math.round(a1)); }
 
   /* ---- age: the marker's place; the opening time-lapse plays it from today to retirement */
-  let age = a0, playing = !calm, t0 = performance.now() + 900;
+  let age = a0, playing = !calm, t0 = performance.now() + 900, intro = 0;   // intro: when the opening (re)started, on the scene clock
   const LAPSE = 5200;
   const setAge = (a, fromUser) => { age = Math.max(a0, Math.min(a1, a)); if(fromUser) playing = false; };
 
@@ -178,7 +178,13 @@ function mount(box, d){
     lastRead = '';
     if(slider){ slider.min = a0; slider.max = a1; slider.step = 0.1; slider.value = age;
       slider.oninput = () => setAge(Number(slider.value), true); }
-    if(play) play.onclick = () => { playing = true; t0 = performance.now(); };
+    if(play) play.onclick = () => {
+      if(playing){ playing = false; return; }                         // pause
+      if(age >= a1 - .05 || age <= a0 + .05){                          // from the start: the whole opening again
+        intro = clock.elapsedTime; flag.scale.setScalar(.001); age = a0; t0 = performance.now() + 900;
+      } else t0 = performance.now() - (age - a0) / (a1 - a0) * LAPSE;  // carry on from where it was paused
+      playing = true;
+    };
     resize();
   }
   rebind(box);
@@ -191,17 +197,19 @@ function mount(box, d){
     if(!vis || !canvas.isConnected) return;
     const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
     /* opening: the terrain draws in, the cloud gathers, then the marker climbs */
-    const reveal = calm ? 1 : Math.min(1, t / 1.6);
+    const ti = t - intro;
+    const reveal = calm ? 1 : Math.min(1, ti / 1.6);
     terrainMat.uniforms.uReveal.value = ease(reveal);
     terrainMat.uniforms.uT.value = t;
     wire.material.opacity = .06 * reveal;
-    cloudMat.uniforms.uT.value = t; cloudMat.uniforms.uO.value = calm ? 1 : Math.min(1, Math.max(0, (t - .8) / 1.2));
+    cloudMat.uniforms.uT.value = t; cloudMat.uniforms.uO.value = calm ? 1 : Math.min(1, Math.max(0, (ti - .8) / 1.2));
     cloudGroup.children.forEach(c => { if(c.material.opacity !== undefined && c.isLineSegments) c.material.opacity = .55 * cloudMat.uniforms.uO.value; });
     if(playing){
       const k = Math.min(1, Math.max(0, (performance.now() - t0) / LAPSE));
-      age = a0 + (a1 - a0) * ease(k);
+      age = a0 + (a1 - a0) * k;
       if(k >= 1) playing = false;
     }
+    if(play){ const label = playing ? '❚❚ Pause' : age >= a1 - .05 ? '↺ Replay the climb' : '▶ Play'; if(play.textContent !== label) play.textContent = label; }
     const prog = (age - a0) / Math.max(.001, a1 - a0);
     tube.geometry.setDrawRange(0, Math.floor(tube.geometry.index.count * Math.max(prog, calm ? 1 : 0)));
     const yNow = Y(at(p50, age)) + .06, xNow = X(age);

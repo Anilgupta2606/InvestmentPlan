@@ -1340,7 +1340,9 @@ function renderLookChip(){
 function loadSummitScript(){
   if(document.getElementById('summit-js')) return;
   const s = document.createElement('script');
-  s.type = 'module'; s.id = 'summit-js'; s.src = 'summit.js';
+  // the same version as app.js (index.html), so a new deploy never runs with an old cached copy
+  const v = (String((document.querySelector('script[src*="app.js"]') || {}).src || '').split('v=')[1] || '');
+  s.type = 'module'; s.id = 'summit-js'; s.src = 'summit.js' + (v ? '?v=' + v : '');
   document.head.appendChild(s);
 }
 const phaseAt = a => a >= STATE.retireAge ? 'Retired' : a < 40 ? 'Full throttle' : a < 43 ? 'Growth + aware' : a < 46 ? 'De-risking' : 'Preservation';
@@ -1359,7 +1361,7 @@ function summitHTML(){
     </div>
     <div class="sm-stage" id="sm-stage"><canvas aria-hidden="true"></canvas><div class="sm-tags" aria-hidden="true"></div><div class="sm-read" aria-live="polite"></div>
       <div class="sm-legend"><span><i class="lo"></i>Front edge: 1 in 10 do worse</span><span><i class="mid"></i>Crest: the likely path</span><span><i class="hi"></i>Back edge: 1 in 10 do better</span><span><i class="tg"></i>Gold cloud: your target</span></div></div>
-    <div class="sm-scrub"><button class="sm-play" type="button" aria-label="Play the climb again">▶ Replay</button>
+    <div class="sm-scrub"><button class="sm-play" type="button" aria-label="Play or pause the climb">❚❚ Pause</button>
       <input type="range" class="sm-slider" aria-label="Age to look at"><span class="sm-scrub-l">Drag through the years</span></div>
   </div>`;
 }

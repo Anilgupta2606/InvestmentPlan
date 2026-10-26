@@ -49,6 +49,7 @@
 :root[data-look='new'] .block-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: -.01em; text-transform: none; color: var(--ink); }
 
 /* ---------- header: night green and gold ---------- */
+:root[data-look='new'] .topbar { position: relative; }   /* not pinned: the tall header would cover the Summit as you scroll */
 :root[data-look='new'] .topbar {
   background:
     linear-gradient(180deg, transparent 0 calc(100% - 1px), rgb(255 255 255 / .045) 0) 0 0 / 100% 30px,
@@ -139,7 +140,10 @@
 .sm-legend i.lo { background: #1a6a58; } .sm-legend i.mid { background: #ffd98a; } .sm-legend i.hi { background: #5fc8a8; } .sm-legend i.tg { background: rgb(226 176 74 / .45); border: 1px dashed #e2b04a; }
 @media (max-width: 760px) { .sm-legend { display: none; } }
 .sm-scrub { display: flex; align-items: center; gap: 14px; padding: 4px 26px 22px; position: relative; z-index: 2; }
-.sm-play { border: 0; cursor: pointer; padding: 9px 14px; border-radius: 12px; background: linear-gradient(135deg, var(--sm-gold-2), var(--sm-gold)); color: #1a1405; font: 800 13px var(--font-body); white-space: nowrap; }
+.sm-play { cursor: pointer; padding: 9px 16px; border-radius: 999px; border: 1px solid rgb(226 176 74 / .55); background: rgb(226 176 74 / .1); color: var(--sm-gold-2);
+  font: 700 13px var(--font-body); white-space: nowrap; min-width: 150px; transition: background .2s, transform .15s; }
+.sm-play:hover { background: rgb(226 176 74 / .2); transform: translateY(-1px); }
+.sm-play:focus-visible { outline: 2px solid var(--sm-gold-2); outline-offset: 3px; }
 .sm-slider { flex: 1; min-width: 0; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 4px; background: linear-gradient(90deg, #1a6a58, #e2b04a); outline: none; }
 .sm-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid #e2b04a; box-shadow: 0 0 14px rgb(226 176 74 / .8); cursor: grab; }
 .sm-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid #e2b04a; cursor: grab; }
