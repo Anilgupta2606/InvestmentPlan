@@ -129,7 +129,7 @@
 .sm-next b { font: 600 13px var(--font-body); white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 @media (max-width: 860px) { .sm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .sm-stage { position: relative; height: 430px; margin-top: -6px; }
-.sm-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.sm-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: ew-resize; }
 .sm-stage.no3d { display: none; }
 @media (max-width: 760px) { .sm-stage { height: 330px; } }
 .sm-tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

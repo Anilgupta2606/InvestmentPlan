@@ -1362,7 +1362,7 @@ function summitHTML(){
     <div class="sm-stage" id="sm-stage"><canvas aria-hidden="true"></canvas><div class="sm-tags" aria-hidden="true"></div><div class="sm-read" aria-live="polite"></div>
       <div class="sm-legend"><span><i class="lo"></i>Front edge: 1 in 10 do worse</span><span><i class="mid"></i>Crest: the likely path</span><span><i class="hi"></i>Back edge: 1 in 10 do better</span><span><i class="tg"></i>Violet cloud: your target</span></div></div>
     <div class="sm-scrub"><button class="sm-play" type="button" aria-label="Play or pause the climb">❚❚ Pause</button>
-      <input type="range" class="sm-slider" aria-label="Age to look at"><span class="sm-scrub-l">Drag through the years</span></div>
+      </div>
   </div>`;
 }
 function refreshSummit(next){
@@ -1379,7 +1379,7 @@ function refreshSummit(next){
   set('sm-chance', pctTxt(c.low));
   const ct = document.getElementById('sm-chance-t');
   if(ct) ct.innerHTML = `chance of reaching <b>₹${lowCr} Cr</b> by ${retire}`;
-  set('sm-sub', `Likely ${fmtCompact(end.p50)} at ${retire} — between ${fmtCompact(end.p10)} and ${fmtCompact(end.p90)} in 8 of 10 market runs. Drag the slider to see any year.`);
+  set('sm-sub', `Likely ${fmtCompact(end.p50)} at ${retire} — between ${fmtCompact(end.p10)} and ${fmtCompact(end.p90)} in 8 of 10 market runs. Drag across the terrain to see any year.`);
   const snap = latestSnapshot();
   set('sm-corpus', snap ? fmtCompact(snap.value) : '—');
   set('sm-sip', fmtINR(totalSIP()));

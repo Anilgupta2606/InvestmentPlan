@@ -188,6 +188,14 @@ function mount(box, d){
   const onLeave = () => { tx = ty = 0; };
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerleave', onLeave);
+  /* drag across the terrain to move the marker to any age (left: today, right: retirement) */
+  let dragging = false;
+  const ageFromX = e => { const r = canvas.getBoundingClientRect(); return a0 + Math.min(1, Math.max(0, (e.clientX - r.left - r.width * .08) / (r.width * .84))) * (a1 - a0); };
+  canvas.addEventListener('pointerdown', e => { dragging = true; canvas.setPointerCapture(e.pointerId); setAge(ageFromX(e), true); });
+  canvas.addEventListener('pointermove', e => { if(dragging) setAge(ageFromX(e), true); });
+  const endDrag = () => { dragging = false; };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
   const io = new IntersectionObserver(e => { vis = e[0].isIntersecting; }); io.observe(canvas);
   const resize = () => { const w = canvas.clientWidth, h = canvas.clientHeight; if(!w || !h) return; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
   addEventListener('resize', resize);
