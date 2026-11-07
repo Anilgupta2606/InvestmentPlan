@@ -946,7 +946,7 @@ function renderOverview(){
     <div class="card hero-card">
       <div class="road-head"><h3>Road to retirement</h3><span>${fmtDate(new Date(BASELINE.date))} → age ${retireAge}</span></div>
       <div class="timeline">
-        <div class="timeline-now" style="left:${pct}%"><span class="tag">Today · ${fmtDate(now)}</span><span class="pin"></span></div>
+        <div class="timeline-now${pct < 20 ? ' at-start' : pct > 80 ? ' at-end' : ''}" style="left:${pct}%"><span class="tag">Today · ${fmtDate(now)}</span><span class="pin"></span></div>
         <div class="timeline-track"><div class="timeline-fill" id="tl-fill"></div></div>
         <div class="timeline-ticks"><span>${baselineAge.toFixed(0)}</span><span>${(baselineAge + (retireAge-baselineAge)*0.33).toFixed(0)}</span><span>${(baselineAge + (retireAge-baselineAge)*0.66).toFixed(0)}</span><span>${retireAge} — retire</span></div>
       </div>

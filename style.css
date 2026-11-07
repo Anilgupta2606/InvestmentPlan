@@ -325,6 +325,9 @@ section.block{margin-bottom:40px;}
   position:absolute;top:-22px;transform:translateX(-50%);
   display:flex;flex-direction:column;align-items:center;gap:4px;
 }
+/* near either end the label hangs inward from the pin instead of centring on it and running off the card */
+.timeline-now.at-start{transform:translateX(-5px);align-items:flex-start;}
+.timeline-now.at-end{transform:translateX(calc(-100% + 5px));align-items:flex-end;}
 .timeline-now .pin{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px var(--gold-soft);}
 .timeline-now .tag{font-family:var(--font-mono);font-size:10.5px;background:var(--gold);color:#fff;padding:2px 7px;border-radius:5px;white-space:nowrap;}
 
@@ -427,6 +430,7 @@ td.col-del{width:36px;text-align:center;}
 
 /* ---------- donut + legend ---------- */
 .donut-row{display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+@media (max-width:600px){.donut-row{justify-content:center;}}   /* on a phone the donut sits on its own line: centre it */
 .legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:180px;}
 .legend-item{display:flex;align-items:center;gap:9px;font-size:13px;}
 .legend-item .sw{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
